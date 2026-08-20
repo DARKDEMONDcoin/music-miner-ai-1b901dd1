@@ -41,6 +41,9 @@ type Ctx = {
   unlockMiner: (id: MinerId) => void;
   watchedAd: () => void;
   claimAdMilestone: (id: string) => boolean;
+  addServer: (id: string, units?: number) => void;
+  addNft: (id: string) => void;
+  activateSubscription: (planId: string, days?: number) => void;
   reset: () => void;
 };
 
@@ -217,6 +220,27 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return ok;
   }, []);
 
+  const addServer = useCallback((id: string, units = 1) => {
+    setState((s) => ({
+      ...s,
+      servers: { ...(s.servers ?? {}), [id]: (s.servers?.[id] ?? 0) + units },
+    }));
+  }, []);
+
+  const addNft = useCallback((id: string) => {
+    setState((s) =>
+      (s.nfts ?? []).includes(id) ? s : { ...s, nfts: [...(s.nfts ?? []), id] },
+    );
+  }, []);
+
+  const activateSubscription = useCallback((planId: string, days = 30) => {
+    setState((s) => ({
+      ...s,
+      planId,
+      planUntil: Math.max(s.planUntil ?? 0, Date.now()) + days * 86_400_000,
+    }));
+  }, []);
+
   const reset = useCallback(() => setState(initialState()), []);
 
   const value = useMemo(
@@ -239,6 +263,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       unlockMiner,
       watchedAd,
       claimAdMilestone,
+      addServer,
+      addNft,
+      activateSubscription,
       reset,
     }),
     [
@@ -260,6 +287,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       unlockMiner,
       watchedAd,
       claimAdMilestone,
+      addServer,
+      addNft,
+      activateSubscription,
       reset,
     ],
   );
