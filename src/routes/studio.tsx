@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Check, Loader2, Star, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
+import { useGramPay } from "@/hooks/useGramPay";
 import { GramIcon, CoinIcon, MusicIcon } from "@/components/CoinIcon";
 import { StorePanel } from "@/components/StorePanel";
 import { telegram } from "@/lib/payments";
@@ -67,6 +68,7 @@ function StudioPage() {
 
 function ServersTab() {
   const { state, addServer, addNft } = useGame();
+  const { pay, pending } = useGramPay();
   const [busy, setBusy] = useState<string | null>(null);
 
   const power = rigLevel(state);
@@ -185,7 +187,7 @@ function ServersTab() {
               </div>
               <div className="grid grid-cols-2 gap-2 border-t border-white/10 p-2.5">
                 <button
-                  disabled={Boolean(busy)}
+                  disabled={Boolean(busy) || Boolean(pending)}
                   onClick={() =>
                     payStars(
                       key,
@@ -204,15 +206,16 @@ function ServersTab() {
                   {srv.stars} Stars
                 </button>
                 <button
-                  disabled={Boolean(busy)}
-                  onClick={() =>
-                    toast("Pay with GRAM", {
-                      description: `Send ${srv.gram} GRAM from the Subscription tab checkout.`,
-                    })
-                  }
+                  disabled={Boolean(busy) || Boolean(pending)}
+                  onClick={() => pay(key, srv.gram, srv.name, () => addServer(srv.id))}
                   className="glass-thin flex items-center justify-center gap-1.5 rounded-2xl py-3 text-xs transition-transform duration-200 active:scale-95 disabled:opacity-50"
                 >
-                  <GramIcon size={14} /> {srv.gram} GRAM
+                  {pending === key ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <GramIcon size={14} />
+                  )}
+                  {srv.gram} GRAM
                 </button>
               </div>
             </div>
@@ -255,7 +258,7 @@ function ServersTab() {
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     <button
-                      disabled={Boolean(busy)}
+                      disabled={Boolean(busy) || Boolean(pending)}
                       onClick={() =>
                         payStars(key, { itemId: "nft", nftId: nft.id }, () => addNft(nft.id), nft.name)
                       }
@@ -269,15 +272,16 @@ function ServersTab() {
                       {nft.stars} Stars
                     </button>
                     <button
-                      disabled={Boolean(busy)}
-                      onClick={() =>
-                        toast("Pay with GRAM", {
-                          description: `Send ${nft.gram} GRAM from the Subscription tab checkout.`,
-                        })
-                      }
+                      disabled={Boolean(busy) || Boolean(pending)}
+                      onClick={() => pay(key, nft.gram, nft.name, () => addNft(nft.id))}
                       className="glass-thin flex items-center justify-center gap-1.5 rounded-2xl py-3 text-xs transition-transform duration-200 active:scale-95 disabled:opacity-50"
                     >
-                      <GramIcon size={14} /> {nft.gram} GRAM
+                      {pending === key ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <GramIcon size={14} />
+                      )}
+                      {nft.gram} GRAM
                     </button>
                   </div>
                 )}
