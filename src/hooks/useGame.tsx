@@ -13,10 +13,8 @@ import {
   STORAGE_KEY,
   initialState,
   minerPending,
-  minerUpgradeCost,
   pending,
   todayStamp,
-  upgradeCost,
   type GameState,
   type MinerId,
   type Track,
@@ -103,37 +101,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const upgrade = useCallback((id: string) => {
     let ok = false;
     setState((s) => {
-      const inst = INSTRUMENTS.find((i) => i.id === id);
-      if (!inst) return s;
+      if (!INSTRUMENTS.some((i) => i.id === id)) return s;
       const level = s.levels[id] ?? 0;
-      const cost = upgradeCost(inst, level);
-      if (s.balance < cost) return s;
       ok = true;
       return {
         ...s,
-        balance: s.balance - cost,
         levels: { ...s.levels, [id]: level + 1 },
       };
     });
     return ok;
   }, []);
 
-  const upgradeMiner = useCallback((id: MinerId) => {
-    let ok = false;
-    setState((s) => {
-      const miner = MINERS.find((m) => m.id === id);
-      if (!miner) return s;
-      const level = s.minerLevels[id] ?? 0;
-      const cost = minerUpgradeCost(miner, level);
-      if (s.balance < cost) return s;
-      ok = true;
-      return {
-        ...s,
-        balance: s.balance - cost,
-        minerLevels: { ...s.minerLevels, [id]: level + 1 },
-      };
-    });
-    return ok;
+  const upgradeMiner = useCallback((_id: MinerId) => {
+    setState((s) => ({ ...s, bonusLevels: (s.bonusLevels ?? 0) + 1 }));
+    return true;
   }, []);
 
 
@@ -160,10 +141,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
           return { ...s, premiumUntil: Math.max(s.premiumUntil, Date.now()) + 30 * 86_400_000 };
         if (kind === "booster")
           return { ...s, boosterUntil: Math.max(s.boosterUntil, Date.now()) + 8 * 3_600_000 };
-        if (kind === "gram")
-          return { ...s, minerLevels: { ...s.minerLevels, gram: (s.minerLevels["gram"] ?? 0) + amount } };
-        if (kind === "usdt")
-          return { ...s, minerLevels: { ...s.minerLevels, usdt: (s.minerLevels["usdt"] ?? 0) + amount } };
+        if (kind === "gram" || kind === "usdt")
+          return { ...s, bonusLevels: (s.bonusLevels ?? 0) + amount };
         return { ...s, balance: s.balance + amount };
       });
     },
