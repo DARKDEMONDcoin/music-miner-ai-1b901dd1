@@ -6,6 +6,7 @@ import { useGame } from "@/hooks/useGame";
 import { CoinIcon, MusicIcon } from "@/components/CoinIcon";
 import { MINERS, formatCrypto, formatNumber, minerRate, minerUnlocked } from "@/lib/game";
 import { makeMemo, openExternal, tonkeeperLink } from "@/lib/payments";
+import { usePrices, usd } from "@/hooks/usePrices";
 
 export const Route = createFileRoute("/wallet")({
   head: () => ({
@@ -30,6 +31,7 @@ function short(a: string) {
 
 function WalletPage() {
   const { state, disconnectWallet, withdraw } = useGame();
+  const { prices, error: priceError } = usePrices();
 
   const connected = Boolean(state.walletAddress);
 
@@ -91,6 +93,32 @@ function WalletPage() {
         </div>
       </section>
 
+      <section className="animate-fade-up delay-1 grid grid-cols-2 gap-2">
+        {(["gram", "usdt"] as const).map((id) => {
+          const p = prices?.[id];
+          const up = (p?.change24h ?? 0) >= 0;
+          return (
+            <div key={id} className="liquid-glass flex items-center gap-2 rounded-2xl p-3">
+              <CoinIcon id={id} size={26} />
+              <div className="min-w-0">
+                <p className="text-[11px] text-foreground/50">{id.toUpperCase()} price</p>
+                <p className="text-sm tracking-tight">
+                  {p ? usd(1, p.usd) : priceError ? "—" : "…"}
+                </p>
+              </div>
+              {p ? (
+                <span
+                  className={`ml-auto text-[10px] ${up ? "text-emerald-400" : "text-red-400"}`}
+                >
+                  {up ? "+" : ""}
+                  {p.change24h.toFixed(1)}%
+                </span>
+              ) : null}
+            </div>
+          );
+        })}
+      </section>
+
       {!connected && (
         <section className="animate-fade-up delay-1">
           <ClientOnly fallback={<div className="h-12" aria-hidden />}>
@@ -135,7 +163,7 @@ function WalletPage() {
               <div className="text-right">
                 <p className="text-base tracking-tight">{formatCrypto(balance)}</p>
                 <p className="text-[10px] text-foreground/40">
-                  min {m.minWithdraw} {m.symbol}
+                  {usd(balance, prices?.[m.id]?.usd) ?? `min ${m.minWithdraw} ${m.symbol}`}
                 </p>
               </div>
             </div>
