@@ -9,8 +9,10 @@ import {
 } from "react";
 import {
   INSTRUMENTS,
+  AD_MILESTONES,
   MINERS,
   STORAGE_KEY,
+  cycleDone,
   initialState,
   minerPending,
   pending,
@@ -36,6 +38,9 @@ type Ctx = {
   disconnectWallet: () => void;
   withdraw: (id: MinerId) => boolean;
   payWithGram: (amount: number) => boolean;
+  unlockMiner: (id: MinerId) => void;
+  watchedAd: () => void;
+  claimAdMilestone: (id: string) => boolean;
   reset: () => void;
 };
 
@@ -81,6 +86,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const collect = useCallback(() => {
     let gained = { music: 0, gram: 0, usdt: 0 };
     setState((s) => {
+      if (!cycleDone(s)) return s;
       const music = pending(s);
       const gram = minerPending(s, MINERS[0]!);
       const usdt = minerPending(s, MINERS[1]!);
@@ -142,7 +148,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
         if (kind === "booster")
           return { ...s, boosterUntil: Math.max(s.boosterUntil, Date.now()) + 8 * 3_600_000 };
         if (kind === "gram" || kind === "usdt")
-          return { ...s, bonusLevels: (s.bonusLevels ?? 0) + amount };
+          return {
+            ...s,
+            bonusLevels: (s.bonusLevels ?? 0) + amount,
+            minersUnlocked: { ...s.minersUnlocked, [kind]: true },
+          };
         return { ...s, balance: s.balance + amount };
       });
     },
@@ -184,6 +194,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return ok;
   }, []);
 
+  const unlockMiner = useCallback((id: MinerId) => {
+    setState((s) => ({ ...s, minersUnlocked: { ...s.minersUnlocked, [id]: true } }));
+  }, []);
+
+  const watchedAd = useCallback(() => {
+    setState((s) => ({ ...s, adsWatched: (s.adsWatched ?? 0) + 1 }));
+  }, []);
+
+  const claimAdMilestone = useCallback((id: string) => {
+    let ok = false;
+    setState((s) => {
+      const m = AD_MILESTONES.find((x) => x.id === id);
+      if (!m || (s.adsWatched ?? 0) < m.ads || s.adRewardsClaimed.includes(id)) return s;
+      ok = true;
+      return { ...s, usdt: s.usdt + m.usdt, adRewardsClaimed: [...s.adRewardsClaimed, id] };
+    });
+    return ok;
+  }, []);
+
   const reset = useCallback(() => setState(initialState()), []);
 
   const value = useMemo(
@@ -203,6 +232,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       disconnectWallet,
       withdraw,
       payWithGram,
+      unlockMiner,
+      watchedAd,
+      claimAdMilestone,
       reset,
     }),
     [
@@ -221,6 +253,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
       disconnectWallet,
       withdraw,
       payWithGram,
+      unlockMiner,
+      watchedAd,
+      claimAdMilestone,
       reset,
     ],
   );
