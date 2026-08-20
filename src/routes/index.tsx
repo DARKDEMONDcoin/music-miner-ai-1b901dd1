@@ -1,12 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Rocket, Sparkles, Zap } from "lucide-react";
+import { Lock, Rocket, Sparkles, Timer, Zap } from "lucide-react";
 import { CoinIcon, MusicIcon } from "@/components/CoinIcon";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
 import {
   MINERS,
   activeTrack,
+  cycleDone,
   fillPct,
+  formatDuration,
+  minerUnlocked,
+  msLeft,
   formatCrypto,
   formatNumber,
   minerPending,
@@ -40,12 +44,20 @@ function MinePage() {
   const fill = fillPct(state, now);
   const rate = ratePerHour(state);
   const track = activeTrack(state);
+  const done = cycleDone(state, now);
+  const left = msLeft(state, now);
   const level = rigLevel(state);
 
   const gramMiner = MINERS[0]!;
   const usdtMiner = MINERS[1]!;
 
   const onCollect = () => {
+    if (!done) {
+      toast("Mining cycle still running", {
+        description: `Collect unlocks in ${formatDuration(left)}.`,
+      });
+      return;
+    }
     const gained = collect();
     if (gained.music <= 0 && gained.gram <= 0 && gained.usdt <= 0) {
       toast("Nothing to collect yet", { description: "Come back later or upgrade your studio." });
@@ -88,6 +100,10 @@ function MinePage() {
               Ready to collect
             </p>
             <p className="mt-1 text-3xl tracking-tight">{formatNumber(ready)}</p>
+            <p className="mt-1 flex items-center gap-1 text-[11px] text-foreground/50">
+              <Timer size={11} />
+              {done ? "Cycle complete — collect now" : `Unlocks in ${formatDuration(left)}`}
+            </p>
           </div>
           <p className="text-[11px] text-foreground/50">
             {fill.toFixed(0)}% of {storageHours(state)}h
@@ -103,9 +119,12 @@ function MinePage() {
 
         <button
           onClick={onCollect}
-          className="mt-4 w-full rounded-2xl bg-white py-3 text-sm text-gray-900 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
+          disabled={!done}
+          className={`mt-4 w-full rounded-2xl py-3 text-sm transition-transform duration-200 active:scale-95 ${
+            done ? "bg-white text-gray-900 hover:scale-[1.02]" : "glass-thin text-foreground/45"
+          }`}
         >
-          Collect earnings
+          {done ? "Collect earnings" : `Collect in ${formatDuration(left)}`}
         </button>
       </section>
 
@@ -121,10 +140,16 @@ function MinePage() {
               <span className="text-[11px] text-foreground/60">{m.symbol}</span>
             </div>
             <p className="mt-3 text-xl tracking-tight">{formatCrypto(balance)}</p>
-            <p className="mt-1 text-[10px] text-foreground/50">
-              {level > 0
-                ? `+${formatCrypto(pend)} ready · ${formatCrypto(minerRate(state, m))}/hr`
-                : "Upgrade once to start mining"}
+            <p className="mt-1 flex items-center gap-1 text-[10px] text-foreground/50">
+              {!minerUnlocked(state, m.id) ? (
+                <>
+                  <Lock size={9} /> Unlock in the store
+                </>
+              ) : level > 0 ? (
+                `+${formatCrypto(pend)} ready · ${formatCrypto(minerRate(state, m))}/hr`
+              ) : (
+                "Upgrade once to start mining"
+              )}
             </p>
           </div>
         ))}
