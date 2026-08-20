@@ -1,7 +1,8 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { ListChecks, Pickaxe, Rocket, Wallet, Wand2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { BoomerangVideoBg } from "@/components/BoomerangVideoBg";
+import { telegram } from "@/lib/payments";
 
 const NAV = [
   { to: "/", label: "Mine", icon: Pickaxe },
@@ -13,13 +14,44 @@ const NAV = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const router = useRouter();
+
+  /* Telegram chrome: expand the viewport and wire the native Back button. */
+  useEffect(() => {
+    const tg = telegram();
+    tg?.ready?.();
+    tg?.expand?.();
+  }, []);
+
+  useEffect(() => {
+    const tg = telegram();
+    const back = tg?.BackButton;
+    if (!back) return;
+    const goBack = () => {
+      if (window.history.length > 1) router.history.back();
+      else router.navigate({ to: "/" });
+    };
+    if (pathname === "/") {
+      back.hide?.();
+      return;
+    }
+    back.onClick?.(goBack);
+    back.show?.();
+    return () => {
+      back.offClick?.(goBack);
+      back.hide?.();
+    };
+  }, [pathname, router]);
 
   return (
     <div className="relative min-h-screen w-full">
       <BoomerangVideoBg />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-md flex-col">
-        <main key={pathname} className="page-enter flex-1 px-4 pb-32 pt-6">
+        {/* Safe area so the Telegram header controls never overlap the content. */}
+        <div aria-hidden className="tg-safe-top shrink-0" />
+
+        <main key={pathname} className="page-enter flex-1 px-4 pb-32 pt-2">
           {children}
         </main>
 

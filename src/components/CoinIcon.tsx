@@ -1,21 +1,18 @@
+import gramCoin from "@/assets/gram-coin.png";
+
 type Props = { size?: number; className?: string };
 
 export function GramIcon({ size = 20, className = "" }: Props) {
   return (
-    <svg
-      viewBox="0 0 56 56"
+    <img
+      src={gramCoin}
+      alt="GRAM coin"
       width={size}
       height={size}
-      role="img"
-      aria-label="GRAM coin"
-      className={`shrink-0 ${className}`}
-    >
-      <circle cx="28" cy="28" r="28" fill="#0098EA" />
-      <path
-        d="M37.6 15.6H18.4c-3.5 0-5.8 3.8-4 6.9l11.8 20.5c.8 1.4 2.8 1.4 3.6 0l11.8-20.5c1.8-3.1-.5-6.9-4-6.9Zm-11.4 21-2.6-5-6.2-11.1c-.4-.7.1-1.6 1-1.6h7.8v17.7Zm12.2-16.1-6.2 11.1-2.6 5V18.9h7.8c.9 0 1.4.9 1 1.6Z"
-        fill="#fff"
-      />
-    </svg>
+      loading="lazy"
+      style={{ width: size, height: size }}
+      className={`shrink-0 object-contain ${className}`}
+    />
   );
 }
 

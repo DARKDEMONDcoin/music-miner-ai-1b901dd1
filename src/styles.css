@@ -191,3 +191,11 @@
     animation: none;
   }
 }
+
+/* Space under the Telegram header controls (close / menu / back). */
+@utility tg-safe-top {
+  height: calc(
+    var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) +
+      var(--tg-content-safe-area-inset-top, 0px) + 4.5rem
+  );
+}

@@ -146,6 +146,12 @@ export type GameState = {
   refCode: string;
   walletAddress: string | null;
   bonusLevels: number;
+  /** Crypto miners only run after a paid unlock. */
+  minersUnlocked: { gram: boolean; usdt: boolean };
+  /** Adsgram ads watched (for the ad milestones in Tasks). */
+  adsWatched: number;
+  /** USDT already paid out from the ad milestones. */
+  adRewardsClaimed: string[];
 };
 
 export const STORAGE_KEY = "music-ai-state-v1";
@@ -177,6 +183,9 @@ export function initialState(): GameState {
     refCode: makeRefCode(),
     walletAddress: null,
     bonusLevels: 0,
+    minersUnlocked: { gram: false, usdt: false },
+    adsWatched: 0,
+    adRewardsClaimed: [],
   };
 }
 
@@ -223,6 +232,25 @@ export function pending(s: GameState, now = Date.now()) {
 export function fillPct(s: GameState, now = Date.now()) {
   const hours = (now - s.lastCollectAt) / 3_600_000;
   return Math.min(100, (hours / storageHours(s)) * 100);
+}
+
+/** Earnings can only be collected once the full mining cycle has finished. */
+export function cycleDone(s: GameState, now = Date.now()) {
+  return fillPct(s, now) >= 100;
+}
+
+/** Milliseconds left before the current mining cycle completes. */
+export function msLeft(s: GameState, now = Date.now()) {
+  return Math.max(0, s.lastCollectAt + storageHours(s) * 3_600_000 - now);
+}
+
+export function formatDuration(ms: number) {
+  const total = Math.ceil(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(h)}:${pad(m)}:${pad(sec)}`;
 }
 
 /* ---------------- Crypto miners: GRAM & USDT ---------------- */
@@ -276,9 +304,13 @@ export function rigLevel(s: GameState) {
   return inst + (s.bonusLevels ?? 0);
 }
 
+export function minerUnlocked(s: GameState, id: MinerId) {
+  return Boolean(s.minersUnlocked?.[id]);
+}
+
 export function minerRate(s: GameState, m: Miner) {
   const level = rigLevel(s);
-  if (level <= 0) return 0;
+  if (level <= 0 || !minerUnlocked(s, m.id)) return 0;
   const raw = m.baseRate * Math.pow(MINER_RATE_GROWTH, level - 1);
   return raw * (isPremium(s) ? 2 : 1) * (s.boosterUntil > Date.now() ? 1.5 : 1);
 }
@@ -313,3 +345,13 @@ export function gramForCost(musicCost: number) {
 export function starsForCost(musicCost: number) {
   return Math.max(15, Math.ceil(musicCost / 1500));
 }
+
+
+/* ---------------- Adsgram reward milestones ---------------- */
+
+export type AdMilestone = { id: string; ads: number; usdt: number };
+
+export const AD_MILESTONES: AdMilestone[] = [
+  { id: "ads-500", ads: 500, usdt: 5 },
+  { id: "ads-1000", ads: 1000, usdt: 12.5 },
+];
