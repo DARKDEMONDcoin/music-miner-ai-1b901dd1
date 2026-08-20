@@ -104,7 +104,20 @@ type TelegramWebApp = {
   openInvoice?: (url: string, cb: (status: string) => void) => void;
   initData?: string;
   initDataUnsafe?: { user?: { id: number; username?: string; first_name?: string } };
-  HapticFeedback?: { notificationOccurred?: (t: "success" | "error" | "warning") => void };
+  HapticFeedback?: {
+    notificationOccurred?: (t: "success" | "error" | "warning") => void;
+    impactOccurred?: (t: "light" | "medium" | "heavy") => void;
+  };
+  BackButton?: {
+    show?: () => void;
+    hide?: () => void;
+    onClick?: (cb: () => void) => void;
+    offClick?: (cb: () => void) => void;
+  };
+  ready?: () => void;
+  expand?: () => void;
+  safeAreaInset?: { top?: number };
+  contentSafeAreaInset?: { top?: number };
 };
 
 export function telegram(): TelegramWebApp | null {
