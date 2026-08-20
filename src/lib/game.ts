@@ -146,6 +146,12 @@ export type GameState = {
   refCode: string;
   walletAddress: string | null;
   bonusLevels: number;
+  /** Crypto miners only run after a paid unlock. */
+  minersUnlocked: { gram: boolean; usdt: boolean };
+  /** Adsgram ads watched (for the ad milestones in Tasks). */
+  adsWatched: number;
+  /** USDT already paid out from the ad milestones. */
+  adRewardsClaimed: string[];
 };
 
 export const STORAGE_KEY = "music-ai-state-v1";
