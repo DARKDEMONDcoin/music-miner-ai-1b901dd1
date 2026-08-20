@@ -6,19 +6,22 @@ import { useGame } from "@/hooks/useGame";
 import { isPremium } from "@/lib/game";
 import { GramIcon } from "@/components/CoinIcon";
 import {
+  SHOP_CATEGORIES,
   SHOP_ITEMS,
   makeMemo,
   openExternal,
   telegram,
   tonkeeperLink,
+  type ShopCategory,
   type ShopItem,
 } from "@/lib/payments";
 import { verifyTonPayment } from "@/lib/ton.functions";
 
 export function StorePanel() {
-  const { state, buy } = useGame();
+  const { state, buy, unlockMiner } = useGame();
   const verify = useServerFn(verifyTonPayment);
   const [busy, setBusy] = useState<string | null>(null);
+  const [category, setCategory] = useState<ShopCategory>("miners");
   const cancelled = useRef(false);
 
   const applyItem = (id: ShopItem["id"]) => {
@@ -26,12 +29,18 @@ export function StorePanel() {
     else if (id === "booster") buy("booster");
     else if (id === "coins") buy("coins", 250_000);
     else if (id === "tracks10") buy("coins", 0);
-    else if (id === "gram-rig") buy("gram", 5);
-    else if (id === "usdt-rig") buy("usdt", 5);
-    else if (id === "mega") {
+    else if (id === "gram-rig") {
+      unlockMiner("gram");
+      buy("gram", 5);
+    } else if (id === "usdt-rig") {
+      unlockMiner("usdt");
+      buy("usdt", 5);
+    } else if (id === "mega") {
       buy("premium");
       buy("booster");
       buy("coins", 1_000_000);
+      unlockMiner("gram");
+      unlockMiner("usdt");
       buy("gram", 3);
     }
     telegram()?.HapticFeedback?.notificationOccurred?.("success");
@@ -99,16 +108,37 @@ export function StorePanel() {
     });
   };
 
+  const items = SHOP_ITEMS.filter((i) => i.category === category);
+  const hint = SHOP_CATEGORIES.find((c) => c.id === category)!.hint;
+
   return (
-    <div className="space-y-2.5">
-      <section className="liquid-glass animate-fade-up delay-1 rounded-3xl p-5 text-center">
+    <div className="space-y-3">
+      <section className="liquid-glass animate-fade-up rounded-3xl p-5 text-center">
         <p className="text-base tracking-tight">
-          {isPremium(state) ? "Premium is active" : "Level up your studio faster"}
+          {isPremium(state) ? "Premium is active" : "Store"}
         </p>
-        <p className="mt-1 text-[11px] text-foreground/50">Pay with Telegram Stars or GRAM</p>
+        <p className="mt-1 text-[11px] text-foreground/50">
+          Pay once with Telegram Stars or GRAM — everything applies instantly
+        </p>
       </section>
 
-      {SHOP_ITEMS.map((item, i) => {
+      <div className="glass-thin animate-fade-up delay-1 flex rounded-2xl p-1">
+        {SHOP_CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setCategory(c.id)}
+            className={`flex-1 rounded-xl py-2 text-xs transition-all duration-200 active:scale-95 ${
+              category === c.id ? "bg-white text-gray-900" : "text-foreground/60"
+            }`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      <p className="px-1 text-[11px] text-foreground/45">{hint}</p>
+
+      {items.map((item) => {
         const Icon = item.icon;
         const starsBusy = busy === `${item.id}-stars`;
         const gramBusy = busy === `${item.id}-ton`;
@@ -116,13 +146,15 @@ export function StorePanel() {
           <div
             key={item.id}
             className={`liquid-glass animate-fade-up overflow-hidden rounded-3xl ${
-              i < 4 ? `delay-${i + 2}` : ""
-            } ${item.highlight ? "ring-1 ring-white/40" : ""}`}
+              item.highlight ? "ring-1 ring-white/40" : ""
+            }`}
           >
-            <div className="flex items-center gap-3 p-4">
+            <div className="flex items-start gap-3 p-4">
               <div
                 className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-                  item.highlight ? "bg-white text-gray-900" : "bg-white/10"
+                  item.highlight
+                    ? "bg-gradient-to-br from-blue-400 to-blue-700"
+                    : "bg-white/10"
                 }`}
               >
                 <Icon size={20} strokeWidth={1.8} />
@@ -130,13 +162,20 @@ export function StorePanel() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="truncate text-sm">{item.title}</p>
-                  {item.highlight ? (
+                  {item.badge ? (
                     <span className="shrink-0 rounded-md bg-white px-1.5 py-0.5 text-[10px] text-gray-900">
-                      Best
+                      {item.badge}
                     </span>
                   ) : null}
                 </div>
                 <p className="mt-0.5 text-[11px] text-foreground/50">{item.desc}</p>
+                <ul className="mt-2 space-y-1">
+                  {item.perks.map((p) => (
+                    <li key={p} className="flex items-start gap-1.5 text-[11px] text-foreground/70">
+                      <Check size={11} className="mt-0.5 shrink-0 text-blue-400" /> {p}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
 
