@@ -304,9 +304,13 @@ export function rigLevel(s: GameState) {
   return inst + (s.bonusLevels ?? 0);
 }
 
+export function minerUnlocked(s: GameState, id: MinerId) {
+  return Boolean(s.minersUnlocked?.[id]);
+}
+
 export function minerRate(s: GameState, m: Miner) {
   const level = rigLevel(s);
-  if (level <= 0) return 0;
+  if (level <= 0 || !minerUnlocked(s, m.id)) return 0;
   const raw = m.baseRate * Math.pow(MINER_RATE_GROWTH, level - 1);
   return raw * (isPremium(s) ? 2 : 1) * (s.boosterUntil > Date.now() ? 1.5 : 1);
 }
@@ -341,3 +345,13 @@ export function gramForCost(musicCost: number) {
 export function starsForCost(musicCost: number) {
   return Math.max(15, Math.ceil(musicCost / 1500));
 }
+
+
+/* ---------------- Adsgram reward milestones ---------------- */
+
+export type AdMilestone = { id: string; ads: number; usdt: number };
+
+export const AD_MILESTONES: AdMilestone[] = [
+  { id: "ads-500", ads: 500, usdt: 5 },
+  { id: "ads-1000", ads: 1000, usdt: 12.5 },
+];
