@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { BarChart3, Heart, Sparkles, Zap } from "lucide-react";
-import { CoinIcon } from "@/components/CoinIcon";
+import { Rocket, Sparkles, Zap } from "lucide-react";
+import { CoinIcon, MusicIcon } from "@/components/CoinIcon";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
 import {
@@ -10,15 +9,14 @@ import {
   fillPct,
   formatCrypto,
   formatNumber,
-  isPremium,
   minerPending,
   minerRate,
   multiplier,
   pending,
   ratePerHour,
+  rigLevel,
   storageHours,
 } from "@/lib/game";
-
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,47 +24,31 @@ export const Route = createFileRoute("/")({
       { title: "Mine | Music AI" },
       {
         name: "description",
-        content: "Collect your studio earnings in MUSIC every few hours and raise your mining rate.",
+        content: "Collect your studio earnings in MUSIC, GRAM and USDT and raise your mining rate.",
       },
       { property: "og:title", content: "Mine | Music AI" },
-      { property: "og:description", content: "Mine the MUSIC coin inside your Telegram studio." },
+      { property: "og:description", content: "Mine three coins inside your Telegram studio." },
     ],
   }),
   component: MinePage,
 });
 
-function Equalizer() {
-  return (
-    <div className="flex items-end gap-1">
-      {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-        <span
-          key={i}
-          className="animate-eq w-1 origin-bottom rounded-full bg-blue-700"
-          style={{ height: 22, animationDelay: `${i * 120}ms` }}
-        />
-      ))}
-    </div>
-  );
-}
-
 function MinePage() {
   const { state, now, collect } = useGame();
-  const [liked, setLiked] = useState(false);
 
   const ready = pending(state, now);
   const fill = fillPct(state, now);
   const rate = ratePerHour(state);
   const track = activeTrack(state);
+  const level = rigLevel(state);
 
   const gramMiner = MINERS[0]!;
   const usdtMiner = MINERS[1]!;
-  const gramReady = minerPending(state, gramMiner, now);
-  const usdtReady = minerPending(state, usdtMiner, now);
 
   const onCollect = () => {
     const gained = collect();
     if (gained.music <= 0 && gained.gram <= 0 && gained.usdt <= 0) {
-      toast("Nothing collected yet", { description: "Come back later or upgrade your rig." });
+      toast("Nothing to collect yet", { description: "Come back later or upgrade your studio." });
       return;
     }
     const extra = [
@@ -78,130 +60,105 @@ function MinePage() {
     });
   };
 
-
   return (
     <div className="space-y-3">
-      <section className="liquid-glass animate-fade-up delay-1 rounded-2xl p-5 text-center">
-        <p className="text-xs text-foreground/60">Balance</p>
-        <p className="mt-1 text-4xl tracking-tight">
+      {/* Balance */}
+      <section className="liquid-glass animate-fade-up delay-1 rounded-3xl p-5 text-center">
+        <p className="text-[11px] uppercase tracking-widest text-foreground/40">Balance</p>
+        <p className="mt-1 flex items-center justify-center gap-2 text-4xl tracking-tight">
+          <MusicIcon size={26} />
           {formatNumber(state.balance)}
-          <span className="ml-2 text-sm text-foreground/60">MUSIC</span>
         </p>
-
-        <div className="mt-4 flex items-center justify-center gap-2 text-xs">
-          <span className="glass-thin flex items-center gap-1.5 rounded-lg px-3 py-1.5">
-            <Zap size={12} strokeWidth={2} /> {formatNumber(rate)} / hr
+        <div className="mt-4 flex items-center justify-center gap-2 text-[11px]">
+          <span className="glass-thin flex items-center gap-1.5 rounded-xl px-3 py-1.5">
+            <Zap size={12} strokeWidth={2} className="text-blue-400" /> {formatNumber(rate)} / hr
           </span>
-          <span className="glass-thin rounded-lg px-3 py-1.5">
-            {multiplier(state).toFixed(2)}x multiplier
+          <span className="glass-thin rounded-xl px-3 py-1.5">
+            {multiplier(state).toFixed(2)}x boost
           </span>
+          <span className="glass-thin rounded-xl px-3 py-1.5">Lv {level}</span>
         </div>
       </section>
 
-      <section className="liquid-glass animate-fade-up delay-2 rounded-2xl p-5">
-        <div className="flex items-center justify-between text-xs text-foreground/70">
-          <span>Storage {storageHours(state)}h</span>
-          <span>{fill.toFixed(0)}% full</span>
-        </div>
-        <div className="mt-2 h-1 rounded-full bg-white/20">
-          <div className="h-1 rounded-full bg-blue-700" style={{ width: `${fill}%` }} />
+      {/* Collect */}
+      <section className="liquid-glass animate-fade-up delay-2 rounded-3xl p-5">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-foreground/40">
+              Ready to collect
+            </p>
+            <p className="mt-1 text-3xl tracking-tight">{formatNumber(ready)}</p>
+          </div>
+          <p className="text-[11px] text-foreground/50">
+            {fill.toFixed(0)}% of {storageHours(state)}h
+          </p>
         </div>
 
-        <div className="mt-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-foreground/60">Ready to collect</p>
-            <p className="text-2xl tracking-tight">{formatNumber(ready)}</p>
-          </div>
-          <Equalizer />
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/15">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-700 transition-[width] duration-700"
+            style={{ width: `${fill}%` }}
+          />
         </div>
 
         <button
           onClick={onCollect}
-          className="mt-5 w-full rounded-xl bg-white px-7 py-2.5 text-sm text-gray-900 transition-transform duration-200 hover:scale-105 active:scale-95"
+          className="mt-4 w-full rounded-2xl bg-white py-3 text-sm text-gray-900 transition-transform duration-200 hover:scale-[1.02] active:scale-95"
         >
           Collect earnings
         </button>
       </section>
 
+      {/* Crypto balances */}
       <section className="animate-fade-up delay-3 grid grid-cols-2 gap-3">
         {[
-          { m: gramMiner, balance: state.gram, ready: gramReady },
-          { m: usdtMiner, balance: state.usdt, ready: usdtReady },
-        ].map(({ m, balance, ready: pend }) => {
-          const level = state.minerLevels[m.id] ?? 0;
-          return (
-            <Link
-              key={m.id}
-              to="/studio"
-              className="liquid-glass rounded-2xl p-4 transition-transform duration-200 active:scale-95"
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
-                  <CoinIcon id={m.id} size={20} />
-                </div>
-                <span className="text-xs text-foreground/70">{m.symbol}</span>
-              </div>
-              <p className="mt-3 text-xl tracking-tight">{formatCrypto(balance)}</p>
-              {level > 0 ? (
-                <p className="mt-1 text-[10px] text-foreground/60">
-                  +{formatCrypto(pend)} ready · {formatCrypto(minerRate(state, m))}/hr
-                </p>
-              ) : (
-                <p className="mt-1 text-[10px] text-foreground/60">Tap to unlock mining</p>
-              )}
-            </Link>
-          );
-        })}
-      </section>
-
-
-
-      <section className="liquid-glass animate-fade-up delay-3 rounded-2xl p-2.5 pr-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-700">
-            <BarChart3 size={20} strokeWidth={2.5} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm">
-              {track ? track.title : "No active AI track"}
-            </p>
-            <p className="text-[11px] text-foreground/60">
-              {track ? `${track.genre} · +${track.bonusPct}% mining bonus` : "Generate one for a 24h bonus"}
+          { m: gramMiner, balance: state.gram, pend: minerPending(state, gramMiner, now) },
+          { m: usdtMiner, balance: state.usdt, pend: minerPending(state, usdtMiner, now) },
+        ].map(({ m, balance, pend }) => (
+          <div key={m.id} className="liquid-glass rounded-3xl p-4">
+            <div className="flex items-center gap-2">
+              <CoinIcon id={m.id} size={22} />
+              <span className="text-[11px] text-foreground/60">{m.symbol}</span>
+            </div>
+            <p className="mt-3 text-xl tracking-tight">{formatCrypto(balance)}</p>
+            <p className="mt-1 text-[10px] text-foreground/50">
+              {level > 0
+                ? `+${formatCrypto(pend)} ready · ${formatCrypto(minerRate(state, m))}/hr`
+                : "Upgrade once to start mining"}
             </p>
           </div>
-          <button
-            onClick={() => setLiked((v) => !v)}
-            aria-label="Like track"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-lg transition-transform duration-200 hover:scale-110 active:scale-95"
-          >
-            <Heart size={16} className={liked ? "fill-blue-700 text-blue-700" : "text-blue-700"} />
-          </button>
-        </div>
+        ))}
       </section>
 
-      <div className="animate-fade-up delay-4 grid grid-cols-2 gap-3">
+      {/* Actions */}
+      <section className="animate-fade-up delay-4 grid grid-cols-2 gap-3">
         <Link
           to="/studio"
-          className="liquid-glass rounded-xl px-7 py-2.5 text-center text-sm transition-transform duration-200 hover:scale-105 active:scale-95"
+          className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 py-3 text-sm transition-transform duration-200 hover:scale-[1.02] active:scale-95"
         >
-          Upgrade rig
+          <Rocket size={15} strokeWidth={2} /> Upgrade
         </Link>
         <Link
           to="/ai"
-          className="flex items-center justify-center gap-2 rounded-xl bg-white px-7 py-2.5 text-sm text-gray-900 transition-transform duration-200 hover:scale-105 active:scale-95"
+          className="liquid-glass flex items-center justify-center gap-2 rounded-2xl py-3 text-sm transition-transform duration-200 hover:scale-[1.02] active:scale-95"
         >
-          <Sparkles size={14} strokeWidth={2} /> Make a track
+          <Sparkles size={15} strokeWidth={2} /> Make a track
         </Link>
-      </div>
+      </section>
 
-      {!isPremium(state) && (
-        <Link
-          to="/studio"
-          className="animate-fade-up delay-5 block rounded-xl bg-blue-700 px-5 py-3 text-center text-sm transition-transform duration-200 hover:scale-105 active:scale-95"
-        >
-          Get Premium — 2x mining, 24h storage
-        </Link>
-      )}
+      {track ? (
+        <section className="liquid-glass animate-fade-up delay-5 flex items-center gap-3 rounded-3xl p-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 to-blue-700">
+            <Sparkles size={18} strokeWidth={2} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm">{track.title}</p>
+            <p className="text-[11px] text-foreground/60">
+              {track.genre} · +{track.bonusPct}% mining bonus
+            </p>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
