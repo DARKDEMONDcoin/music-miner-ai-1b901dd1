@@ -145,6 +145,7 @@ export type GameState = {
   referrals: number;
   refCode: string;
   walletAddress: string | null;
+  bonusLevels: number;
 };
 
 export const STORAGE_KEY = "music-ai-state-v1";
@@ -159,15 +160,15 @@ export function makeRefCode() {
 
 export function initialState(): GameState {
   return {
-    balance: 500,
+    balance: 0,
     gram: 0,
     usdt: 0,
     minerLevels: {},
-    levels: { "lofi-pad": 1 },
+    levels: {},
     lastCollectAt: Date.now(),
     collectsToday: 0,
     dayStamp: todayStamp(),
-    streak: 1,
+    streak: 0,
     claimedTasks: [],
     tracks: [],
     premiumUntil: 0,
@@ -175,6 +176,7 @@ export function initialState(): GameState {
     referrals: 0,
     refCode: makeRefCode(),
     walletAddress: null,
+    bonusLevels: 0,
   };
 }
 
@@ -268,8 +270,14 @@ export function minerUpgradeCost(m: Miner, level: number) {
   return Math.round(m.baseCost * Math.pow(MINER_COST_GROWTH, level));
 }
 
+/** Total upgrade levels across the whole studio — every upgrade feeds all three coins. */
+export function rigLevel(s: GameState) {
+  const inst = INSTRUMENTS.reduce((sum, i) => sum + (s.levels[i.id] ?? 0), 0);
+  return inst + (s.bonusLevels ?? 0);
+}
+
 export function minerRate(s: GameState, m: Miner) {
-  const level = s.minerLevels[m.id] ?? 0;
+  const level = rigLevel(s);
   if (level <= 0) return 0;
   const raw = m.baseRate * Math.pow(MINER_RATE_GROWTH, level - 1);
   return raw * (isPremium(s) ? 2 : 1) * (s.boosterUntil > Date.now() ? 1.5 : 1);
