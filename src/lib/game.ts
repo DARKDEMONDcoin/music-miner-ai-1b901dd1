@@ -234,6 +234,25 @@ export function fillPct(s: GameState, now = Date.now()) {
   return Math.min(100, (hours / storageHours(s)) * 100);
 }
 
+/** Earnings can only be collected once the full mining cycle has finished. */
+export function cycleDone(s: GameState, now = Date.now()) {
+  return fillPct(s, now) >= 100;
+}
+
+/** Milliseconds left before the current mining cycle completes. */
+export function msLeft(s: GameState, now = Date.now()) {
+  return Math.max(0, s.lastCollectAt + storageHours(s) * 3_600_000 - now);
+}
+
+export function formatDuration(ms: number) {
+  const total = Math.ceil(ms / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(h)}:${pad(m)}:${pad(sec)}`;
+}
+
 /* ---------------- Crypto miners: GRAM & USDT ---------------- */
 
 export type MinerId = "gram" | "usdt";
