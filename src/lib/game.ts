@@ -68,7 +68,7 @@ export const INSTRUMENTS: Instrument[] = [
 ];
 
 export const COST_GROWTH = 1.6;
-export const RATE_GROWTH = 1.35;
+export const RATE_GROWTH = 1.5;
 export const BASE_STORAGE_HOURS = 6;
 export const PREMIUM_STORAGE_HOURS = 24;
 
@@ -264,7 +264,7 @@ export const MINERS: Miner[] = [
 ];
 
 export const MINER_COST_GROWTH = 1.75;
-export const MINER_RATE_GROWTH = 1.4;
+export const MINER_RATE_GROWTH = 1.45;
 
 export function minerUpgradeCost(m: Miner, level: number) {
   return Math.round(m.baseCost * Math.pow(MINER_COST_GROWTH, level));
