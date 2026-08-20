@@ -26,6 +26,7 @@ import {
   gramForCost,
   instrumentRate,
   minerRate,
+  minerUnlocked,
   ratePerHour,
   rigLevel,
   starsForCost,
@@ -154,32 +155,63 @@ function UpgradesTab() {
       <section className="liquid-glass animate-fade-up delay-2 rounded-3xl p-4">
         <div className="flex items-center gap-2 text-sm">
           <Sparkles size={16} className="text-blue-400" />
-          Every upgrade boosts all three coins
+          How upgrades work
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-foreground/70">
+        <ol className="mt-3 space-y-2 text-[11px] text-foreground/70">
+          <li className="flex gap-2">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/15 text-[9px]">
+              1
+            </span>
+            Buy any upgrade below with GRAM or Telegram Stars.
+          </li>
+          <li className="flex gap-2">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/15 text-[9px]">
+              2
+            </span>
+            Each upgrade adds +1 rig level, and rig level drives all three coins at once.
+          </li>
+          <li className="flex gap-2">
+            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/15 text-[9px]">
+              3
+            </span>
+            Collect when the mining cycle finishes — GRAM and USDT need a paid miner from the store.
+          </li>
+        </ol>
+
+        <p className="mt-4 text-[10px] uppercase tracking-widest text-foreground/40">
+          Your next upgrade
+        </p>
+        <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
           <div className="glass-thin rounded-xl p-2 text-center">
             <MusicIcon size={16} className="mx-auto" />
-            <p className="mt-1">+50% / level</p>
+            <p className="mt-1 text-foreground/50">MUSIC/hr</p>
+            <p className="text-foreground/90">+50%</p>
           </div>
           <div className="glass-thin rounded-xl p-2 text-center">
             <GramIcon size={16} className="mx-auto" />
-            <p className="mt-1">
-              {formatCrypto(minerRate(nextState, gramMiner))}
-              /hr next
+            <p className="mt-1 text-foreground/50">GRAM/hr</p>
+            <p className="text-foreground/90">
+              {minerUnlocked(state, "gram")
+                ? formatCrypto(minerRate(nextState, gramMiner))
+                : "Locked"}
             </p>
           </div>
           <div className="glass-thin rounded-xl p-2 text-center">
             <CoinIcon id="usdt" size={16} className="mx-auto" />
-            <p className="mt-1">
-              {formatCrypto(minerRate(nextState, usdtMiner))}
-              /hr next
+            <p className="mt-1 text-foreground/50">USDT/hr</p>
+            <p className="text-foreground/90">
+              {minerUnlocked(state, "usdt")
+                ? formatCrypto(minerRate(nextState, usdtMiner))
+                : "Locked"}
             </p>
           </div>
         </div>
       </section>
 
       <section className="animate-fade-up delay-3 space-y-2.5">
-        <h2 className="px-1 text-xs uppercase tracking-widest text-foreground/40">Upgrades</h2>
+        <h2 className="px-1 text-xs uppercase tracking-widest text-foreground/40">
+          Pick an upgrade
+        </h2>
         {INSTRUMENTS.map((inst) => {
           const level = state.levels[inst.id] ?? 0;
           const cost = upgradeCost(inst, level);
@@ -205,7 +237,7 @@ function UpgradesTab() {
                     <span className="text-foreground/80">
                       {formatNumber(instrumentRate(inst, level + 1))}
                     </span>
-                    MUSIC/hr · +GRAM · +USDT
+                    MUSIC/hr · +1 rig level for GRAM &amp; USDT
                   </p>
                 </div>
               </div>
