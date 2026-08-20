@@ -13447,6 +13447,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      all_prize_broadcast_targets: {
+        Args: { _limit: number; _offset?: number }
+        Returns: {
+          first_name: string
+          id: string
+          telegram_id: number
+        }[]
+      }
       assert_model_access: { Args: { _model_id: string }; Returns: Json }
       attach_referral_for_telegram: {
         Args: { _code: string; _telegram_id: number }
@@ -14245,6 +14253,7 @@ export type Database = {
         }
         Returns: Json
       }
+      grant_prize_to_all: { Args: never; Returns: Json }
       grant_user_credits: {
         Args: {
           p_action_type: string
