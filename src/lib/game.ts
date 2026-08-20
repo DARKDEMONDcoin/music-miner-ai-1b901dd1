@@ -183,6 +183,9 @@ export function initialState(): GameState {
     refCode: makeRefCode(),
     walletAddress: null,
     bonusLevels: 0,
+    minersUnlocked: { gram: false, usdt: false },
+    adsWatched: 0,
+    adRewardsClaimed: [],
   };
 }
 
