@@ -144,7 +144,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     (kind: "premium" | "booster" | "coins" | "gram" | "usdt", amount = 0) => {
       setState((s) => {
         if (kind === "premium")
-          return { ...s, premiumUntil: Math.max(s.premiumUntil, Date.now()) + 30 * 86_400_000 };
+          return {
+            ...s,
+            premiumUntil: Math.max(s.premiumUntil, Date.now()) + 30 * 86_400_000,
+            minersUnlocked: { gram: true, usdt: true },
+          };
         if (kind === "booster")
           return { ...s, boosterUntil: Math.max(s.boosterUntil, Date.now()) + 8 * 3_600_000 };
         if (kind === "gram" || kind === "usdt")
