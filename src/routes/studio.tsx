@@ -1,112 +1,90 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  AudioWaveform,
-  Brain,
-  Drum,
-  Loader2,
-  Orbit,
-  Piano,
-  SlidersHorizontal,
-  Sparkles,
-  Star,
-  TrendingUp,
-  type LucideIcon,
-} from "lucide-react";
+import { Check, Loader2, Star, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
 import { GramIcon, CoinIcon, MusicIcon } from "@/components/CoinIcon";
 import { StorePanel } from "@/components/StorePanel";
-import { openExternal, telegram } from "@/lib/payments";
+import { telegram } from "@/lib/payments";
+import { NFTS, SERVERS } from "@/lib/servers";
 import {
-  INSTRUMENTS,
   MINERS,
   formatCrypto,
   formatNumber,
-  gramForCost,
-  instrumentRate,
   minerRate,
   minerUnlocked,
   ratePerHour,
   rigLevel,
-  starsForCost,
-  upgradeCost,
 } from "@/lib/game";
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
     meta: [
-      { title: "Studio | Music AI" },
+      { title: "Servers | Music AI" },
       {
         name: "description",
         content:
-          "Upgrade your studio with GRAM or Telegram Stars — every upgrade boosts MUSIC, GRAM and USDT mining at once.",
+          "Rent mining servers and collect NFT cards — both raise the hash power behind MUSIC, GRAM and USDT.",
       },
-      { property: "og:title", content: "Studio | Music AI" },
-      { property: "og:description", content: "Upgrades and store in one place inside Music AI." },
+      { property: "og:title", content: "Servers | Music AI" },
+      {
+        property: "og:description",
+        content: "Mining servers and NFT power cards for your Music AI studio.",
+      },
     ],
   }),
   component: StudioPage,
 });
 
-const ICONS: Record<string, LucideIcon> = {
-  AudioWaveform,
-  SlidersHorizontal,
-  Drum,
-  Piano,
-  Brain,
-  Orbit,
-};
-
 function StudioPage() {
-  const [tab, setTab] = useState<"upgrades" | "store">("upgrades");
+  const [tab, setTab] = useState<"servers" | "store">("servers");
 
   return (
     <div className="space-y-4 pt-4">
       <div className="glass-thin animate-fade-up mx-auto flex w-full max-w-xs rounded-full p-1">
-        {(["upgrades", "store"] as const).map((t) => (
+        {(
+          [
+            ["servers", "Servers & NFT"],
+            ["store", "Subscription"],
+          ] as const
+        ).map(([id, label]) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-1 rounded-full py-2 text-xs capitalize transition-all duration-200 active:scale-95 ${
-              tab === t ? "bg-white text-gray-900 shadow-lg" : "text-foreground/60"
+            key={id}
+            onClick={() => setTab(id)}
+            className={`flex-1 rounded-full py-2 text-xs transition-all duration-200 active:scale-95 ${
+              tab === id ? "bg-white text-gray-900 shadow-lg" : "text-foreground/60"
             }`}
           >
-            {t}
+            {label}
           </button>
         ))}
       </div>
 
-      {tab === "upgrades" ? <UpgradesTab /> : <StorePanel />}
+      {tab === "servers" ? <ServersTab /> : <StorePanel />}
     </div>
   );
 }
 
-function UpgradesTab() {
-  const { state, upgrade, payWithGram } = useGame();
+function ServersTab() {
+  const { state, addServer, addNft } = useGame();
   const [busy, setBusy] = useState<string | null>(null);
 
+  const power = rigLevel(state);
   const gramMiner = MINERS[0]!;
   const usdtMiner = MINERS[1]!;
-  const nextState = { ...state, bonusLevels: (state.bonusLevels ?? 0) + 1 };
 
-  const buyWithGram = (id: string, cost: number, name: string) => {
-    const price = gramForCost(cost);
-    if (!payWithGram(price)) {
-      toast.error(`Not enough GRAM — need ${price} GRAM`);
-      return;
-    }
-    upgrade(id);
-    toast.success(`${name} upgraded`, { description: "MUSIC, GRAM and USDT mining all went up." });
-  };
-
-  const buyWithStars = async (id: string, cost: number, name: string, level: number) => {
-    setBusy(`${id}-stars`);
+  const payStars = async (
+    key: string,
+    payload: Record<string, unknown>,
+    onPaid: () => void,
+    label: string,
+  ) => {
+    setBusy(key);
     try {
       const res = await fetch("/api/telegram/invoice", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ itemId: "upgrade", upgradeKind: "instrument", upgradeId: id, level }),
+        body: JSON.stringify(payload),
       });
       const data = (await res.json()) as { link?: string; error?: string };
       if (!res.ok || !data.link) {
@@ -117,155 +95,197 @@ function UpgradesTab() {
       if (tg?.openInvoice) {
         tg.openInvoice(data.link, (status) => {
           if (status === "paid") {
-            upgrade(id);
-            toast.success(`${name} upgraded`, {
-              description: "MUSIC, GRAM and USDT mining all went up.",
-            });
+            onPaid();
+            telegram()?.HapticFeedback?.notificationOccurred?.("success");
+            toast.success(`${label} activated`);
           } else if (status === "failed") toast.error("Payment failed");
         });
       } else {
-        openExternal(data.link);
+        toast("Open the app inside Telegram to pay with Stars");
       }
     } catch {
-      toast.error("Could not start the Stars checkout");
+      toast.error("Could not start the checkout");
     } finally {
       setBusy(null);
     }
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
+      {/* Power summary */}
       <section className="liquid-glass animate-fade-up delay-1 rounded-3xl p-5 text-center">
-        <p className="text-[11px] uppercase tracking-widest text-foreground/40">Mining rate</p>
-        <p className="mt-1 text-4xl tracking-tight">{formatNumber(ratePerHour(state))}</p>
-        <p className="text-xs text-foreground/50">MUSIC / hour · rig level {rigLevel(state)}</p>
-        <div className="mt-4 grid grid-cols-3 gap-2 text-[11px]">
-          <span className="glass-thin flex items-center justify-center gap-1.5 rounded-xl py-2">
-            <MusicIcon size={14} /> {formatNumber(state.balance)}
-          </span>
-          <span className="glass-thin flex items-center justify-center gap-1.5 rounded-xl py-2">
-            <GramIcon size={14} /> {formatCrypto(state.gram)}
-          </span>
-          <span className="glass-thin flex items-center justify-center gap-1.5 rounded-xl py-2">
-            <CoinIcon id="usdt" size={14} /> {formatCrypto(state.usdt)}
-          </span>
-        </div>
-      </section>
-
-      <section className="liquid-glass animate-fade-up delay-2 rounded-3xl p-4">
-        <div className="flex items-center gap-2 text-sm">
-          <Sparkles size={16} className="text-blue-400" />
-          How upgrades work
-        </div>
-        <ol className="mt-3 space-y-2 text-[11px] text-foreground/70">
-          <li className="flex gap-2">
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/15 text-[9px]">
-              1
-            </span>
-            Buy any upgrade below with GRAM or Telegram Stars.
-          </li>
-          <li className="flex gap-2">
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/15 text-[9px]">
-              2
-            </span>
-            Each upgrade adds +1 rig level, and rig level drives all three coins at once.
-          </li>
-          <li className="flex gap-2">
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-white/15 text-[9px]">
-              3
-            </span>
-            Collect when the mining cycle finishes — GRAM and USDT need a paid miner from the store.
-          </li>
-        </ol>
-
-        <p className="mt-4 text-[10px] uppercase tracking-widest text-foreground/40">
-          Your next upgrade
+        <p className="text-[11px] uppercase tracking-widest text-foreground/40">Total hash power</p>
+        <p className="mt-1 flex items-center justify-center gap-2 text-4xl tracking-tight">
+          <Zap size={22} className="text-amber-300" />
+          {power}
         </p>
-        <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
-          <div className="glass-thin rounded-xl p-2 text-center">
+        <p className="mt-1 text-[11px] text-foreground/50">
+          Power is what mines your coins. More power = more of all three.
+        </p>
+
+        <div className="mt-4 grid grid-cols-3 gap-2 text-[11px]">
+          <div className="glass-thin rounded-xl p-2">
             <MusicIcon size={16} className="mx-auto" />
             <p className="mt-1 text-foreground/50">MUSIC/hr</p>
-            <p className="text-foreground/90">+50%</p>
+            <p>{formatNumber(ratePerHour(state))}</p>
           </div>
-          <div className="glass-thin rounded-xl p-2 text-center">
+          <div className="glass-thin rounded-xl p-2">
             <GramIcon size={16} className="mx-auto" />
             <p className="mt-1 text-foreground/50">GRAM/hr</p>
-            <p className="text-foreground/90">
-              {minerUnlocked(state, "gram")
-                ? formatCrypto(minerRate(nextState, gramMiner))
-                : "Locked"}
+            <p>
+              {minerUnlocked(state, "gram") ? formatCrypto(minerRate(state, gramMiner)) : "Locked"}
             </p>
           </div>
-          <div className="glass-thin rounded-xl p-2 text-center">
+          <div className="glass-thin rounded-xl p-2">
             <CoinIcon id="usdt" size={16} className="mx-auto" />
             <p className="mt-1 text-foreground/50">USDT/hr</p>
-            <p className="text-foreground/90">
-              {minerUnlocked(state, "usdt")
-                ? formatCrypto(minerRate(nextState, usdtMiner))
-                : "Locked"}
+            <p>
+              {minerUnlocked(state, "usdt") ? formatCrypto(minerRate(state, usdtMiner)) : "Locked"}
             </p>
           </div>
         </div>
       </section>
 
-      <section className="animate-fade-up delay-3 space-y-2.5">
-        <h2 className="px-1 text-xs uppercase tracking-widest text-foreground/40">
-          Pick an upgrade
-        </h2>
-        {INSTRUMENTS.map((inst) => {
-          const level = state.levels[inst.id] ?? 0;
-          const cost = upgradeCost(inst, level);
-          const Icon = ICONS[inst.icon] ?? AudioWaveform;
-          const price = gramForCost(cost);
+      {/* Servers */}
+      <div className="animate-fade-up delay-2 space-y-2.5">
+        <div className="px-1">
+          <h2 className="text-xs uppercase tracking-widest text-foreground/40">Mining servers</h2>
+          <p className="mt-1 text-[11px] text-foreground/50">
+            Each server you rent adds fixed power to your account. Stack as many as you want.
+          </p>
+        </div>
+
+        {SERVERS.map((srv) => {
+          const owned = state.servers?.[srv.id] ?? 0;
+          const Icon = srv.icon;
+          const key = `srv-${srv.id}`;
           return (
-            <div key={inst.id} className="liquid-glass overflow-hidden rounded-3xl">
+            <div key={srv.id} className="liquid-glass overflow-hidden rounded-3xl">
               <div className="flex items-center gap-3 p-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/40 to-blue-700/20 ring-1 ring-white/15">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10">
                   <Icon size={20} strokeWidth={1.8} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="truncate text-sm">{inst.name}</p>
-                    <span className="glass-thin shrink-0 rounded-md px-1.5 py-0.5 text-[10px] text-foreground/60">
-                      Lv {level}
-                    </span>
+                    <p className="truncate text-sm">{srv.name}</p>
+                    {srv.badge ? (
+                      <span className="shrink-0 rounded-md bg-white px-1.5 py-0.5 text-[10px] text-gray-900">
+                        {srv.badge}
+                      </span>
+                    ) : null}
                   </div>
-                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-foreground/50">
-                    <TrendingUp size={11} className="text-blue-400" />
-                    {formatNumber(instrumentRate(inst, level))}
-                    <span className="text-foreground/30">→</span>
-                    <span className="text-foreground/80">
-                      {formatNumber(instrumentRate(inst, level + 1))}
-                    </span>
-                    MUSIC/hr · +1 rig level for GRAM &amp; USDT
+                  <p className="mt-0.5 text-[11px] text-foreground/50">{srv.desc}</p>
+                  <p className="mt-1 flex items-center gap-1 text-[11px] text-amber-300">
+                    <Zap size={11} /> +{srv.power} power each
+                    {owned > 0 ? (
+                      <span className="text-foreground/50"> · you own {owned}</span>
+                    ) : null}
                   </p>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-2 border-t border-white/10 p-2.5">
                 <button
-                  onClick={() => buyWithGram(inst.id, cost, inst.name)}
-                  className="flex items-center justify-center gap-1.5 rounded-2xl bg-white py-3 text-xs text-gray-900 transition-transform duration-200 active:scale-95"
+                  disabled={Boolean(busy)}
+                  onClick={() =>
+                    payStars(
+                      key,
+                      { itemId: "server", serverId: srv.id },
+                      () => addServer(srv.id),
+                      srv.name,
+                    )
+                  }
+                  className="flex items-center justify-center gap-1.5 rounded-2xl bg-white py-3 text-xs text-gray-900 transition-transform duration-200 active:scale-95 disabled:opacity-50"
                 >
-                  <GramIcon size={14} /> {price} GRAM
+                  {busy === key ? (
+                    <Loader2 size={14} className="animate-spin text-blue-600" />
+                  ) : (
+                    <Star size={14} className="fill-blue-500 text-blue-500" />
+                  )}
+                  {srv.stars} Stars
                 </button>
                 <button
-                  disabled={busy === `${inst.id}-stars`}
-                  onClick={() => buyWithStars(inst.id, cost, inst.name, level)}
+                  disabled={Boolean(busy)}
+                  onClick={() =>
+                    toast("Pay with GRAM", {
+                      description: `Send ${srv.gram} GRAM from the Subscription tab checkout.`,
+                    })
+                  }
                   className="glass-thin flex items-center justify-center gap-1.5 rounded-2xl py-3 text-xs transition-transform duration-200 active:scale-95 disabled:opacity-50"
                 >
-                  {busy === `${inst.id}-stars` ? (
-                    <Loader2 size={14} className="animate-spin text-blue-400" />
-                  ) : (
-                    <Star size={14} className="fill-blue-400 text-blue-400" />
-                  )}
-                  {starsForCost(cost)} Stars
+                  <GramIcon size={14} /> {srv.gram} GRAM
                 </button>
               </div>
             </div>
           );
         })}
-      </section>
+      </div>
+
+      {/* NFT cards */}
+      <div className="animate-fade-up delay-3 space-y-2.5">
+        <div className="px-1 pt-1">
+          <h2 className="text-xs uppercase tracking-widest text-foreground/40">NFT power cards</h2>
+          <p className="mt-1 text-[11px] text-foreground/50">
+            One-time collectibles. They multiply everything you mine, permanently.
+          </p>
+        </div>
+
+        {NFTS.map((nft) => {
+          const owned = (state.nfts ?? []).includes(nft.id);
+          const Icon = nft.icon;
+          const key = `nft-${nft.id}`;
+          return (
+            <div key={nft.id} className="liquid-glass overflow-hidden rounded-3xl">
+              <div className={`flex items-center gap-3 bg-gradient-to-r p-4 ${nft.tone}`}>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                  <Icon size={20} strokeWidth={1.8} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm">{nft.name}</p>
+                  <p className="mt-0.5 text-[11px] text-foreground/60">{nft.desc}</p>
+                  <p className="mt-1 text-[11px] text-amber-200">
+                    x{nft.multiplier} on every coin · +{nft.power} power
+                  </p>
+                </div>
+              </div>
+              <div className="p-2.5">
+                {owned ? (
+                  <p className="flex items-center justify-center gap-1.5 rounded-2xl bg-white/10 py-3 text-xs text-foreground/70">
+                    <Check size={13} /> Owned — boost is active
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      disabled={Boolean(busy)}
+                      onClick={() =>
+                        payStars(key, { itemId: "nft", nftId: nft.id }, () => addNft(nft.id), nft.name)
+                      }
+                      className="flex items-center justify-center gap-1.5 rounded-2xl bg-white py-3 text-xs text-gray-900 transition-transform duration-200 active:scale-95 disabled:opacity-50"
+                    >
+                      {busy === key ? (
+                        <Loader2 size={14} className="animate-spin text-blue-600" />
+                      ) : (
+                        <Star size={14} className="fill-blue-500 text-blue-500" />
+                      )}
+                      {nft.stars} Stars
+                    </button>
+                    <button
+                      disabled={Boolean(busy)}
+                      onClick={() =>
+                        toast("Pay with GRAM", {
+                          description: `Send ${nft.gram} GRAM from the Subscription tab checkout.`,
+                        })
+                      }
+                      className="glass-thin flex items-center justify-center gap-1.5 rounded-2xl py-3 text-xs transition-transform duration-200 active:scale-95 disabled:opacity-50"
+                    >
+                      <GramIcon size={14} /> {nft.gram} GRAM
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
