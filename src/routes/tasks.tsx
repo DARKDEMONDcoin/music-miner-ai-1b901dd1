@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, Flame } from "lucide-react";
+import { Check, Flame, Loader2, Play } from "lucide-react";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
-import { TASKS, formatNumber } from "@/lib/game";
+import { AD_MILESTONES, TASKS, formatNumber } from "@/lib/game";
+import { showRewardedAd } from "@/lib/adsgram";
 import { ReferralPanel } from "@/components/ReferralPanel";
+import { CoinIcon } from "@/components/CoinIcon";
 import dailyCheckin from "@/assets/tasks/daily-checkin.jpg";
 import dailyCollect from "@/assets/tasks/daily-collect.jpg";
 import dailyUpgrade from "@/assets/tasks/daily-upgrade.jpg";
@@ -72,6 +74,86 @@ function TasksPage() {
   );
 }
 
+function AdsSection() {
+  const { state, watchedAd, claimAdMilestone } = useGame();
+  const [loading, setLoading] = useState(false);
+  const watched = state.adsWatched ?? 0;
+
+  const watch = async () => {
+    setLoading(true);
+    try {
+      const done = await showRewardedAd();
+      if (!done) {
+        toast("Ad skipped", { description: "Watch the full ad to get credit." });
+        return;
+      }
+      watchedAd();
+      toast.success(`Ad ${watched + 1} watched`);
+    } catch {
+      toast.error("No ads available right now", { description: "Try again in a moment." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section className="animate-fade-up delay-1 space-y-2">
+      <h2 className="px-1 text-sm text-foreground/70">Watch &amp; earn</h2>
+
+      <div className="liquid-glass rounded-2xl p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm">Ads watched</p>
+          <p className="text-lg tracking-tight">{watched}</p>
+        </div>
+        <button
+          onClick={watch}
+          disabled={loading}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-sm text-gray-900 transition-transform duration-200 active:scale-95 disabled:opacity-60"
+        >
+          {loading ? <Loader2 size={15} className="animate-spin" /> : <Play size={15} />}
+          Watch an ad
+        </button>
+      </div>
+
+      {AD_MILESTONES.map((m) => {
+        const claimed = state.adRewardsClaimed.includes(m.id);
+        const ready = watched >= m.ads;
+        const pct = Math.min(100, (watched / m.ads) * 100);
+        return (
+          <div key={m.id} className="liquid-glass rounded-2xl p-4">
+            <div className="flex items-center gap-3">
+              <CoinIcon id="usdt" size={36} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm">Watch {m.ads} ads</p>
+                <p className="text-[11px] text-foreground/60">
+                  Reward ${m.usdt} in USDT · {Math.min(watched, m.ads)}/{m.ads}
+                </p>
+              </div>
+              <button
+                disabled={!ready || claimed}
+                onClick={() => {
+                  if (claimAdMilestone(m.id)) toast.success(`+$${m.usdt} USDT added`);
+                }}
+                className={`shrink-0 rounded-xl px-4 py-2 text-xs transition-transform duration-200 active:scale-95 ${
+                  claimed || !ready ? "glass-thin text-foreground/50" : "bg-white text-gray-900"
+                }`}
+              >
+                {claimed ? "Done" : ready ? "Claim" : `$${m.usdt}`}
+              </button>
+            </div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/15">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-700 transition-[width] duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
 function TasksTab() {
   const { state, claimTask } = useGame();
 
@@ -86,6 +168,8 @@ function TasksTab() {
           Day streak — every consecutive day adds 10% to your check-in reward
         </p>
       </section>
+
+      <AdsSection />
 
       {GROUPS.map((g, gi) => (
         <section key={g.kind} className={`animate-fade-up space-y-2 delay-${gi + 2}`}>
