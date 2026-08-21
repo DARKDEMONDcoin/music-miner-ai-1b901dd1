@@ -142,15 +142,63 @@ export async function publishNext() {
   return { ok: true, post };
 }
 
-export function adminPanel(state: BotState) {
+export type AdminStats = {
+  players: number;
+  tasksDone: number;
+  activeTasks: number;
+  paidRequests: number;
+  keysActive: number;
+  keysTotal: number;
+};
+
+/** Live counters for the admin panel. */
+export async function getStats(): Promise<AdminStats> {
+  const c = db();
+  const count = async (table: string, filter?: (q: any) => any) => {
+    let q = c.from(table).select("*", { count: "exact", head: true });
+    if (filter) q = filter(q);
+    const { count: n } = await q;
+    return n ?? 0;
+  };
+  const [tasksDone, activeTasks, paidRequests, keysActive, keysTotal] = await Promise.all([
+    count("music_task_completions"),
+    count("music_tasks", (q) => q.eq("is_active", true)),
+    count("music_task_requests", (q) => q.eq("paid", true)),
+    count("music_deepai_keys", (q) => q.eq("active", true)),
+    count("music_deepai_keys"),
+  ]);
+  const { data: players } = await c
+    .from("music_task_completions")
+    .select("player_key")
+    .limit(5000);
+  return {
+    players: new Set((players ?? []).map((p: { player_key: string }) => p.player_key)).size,
+    tasksDone,
+    activeTasks,
+    paidRequests,
+    keysActive,
+    keysTotal,
+  };
+}
+
+export function adminPanel(state: BotState, stats?: AdminStats) {
   const next = getPost(state.day_index);
+  const s = stats
+    ? `\n\n*Stats*\n` +
+      `Players: ${stats.players}\n` +
+      `Tasks completed: ${stats.tasksDone}\n` +
+      `Active tasks: ${stats.activeTasks}\n` +
+      `Paid task requests: ${stats.paidRequests}\n` +
+      `DeepAI keys: ${stats.keysActive} active / ${stats.keysTotal}`
+    : "";
   return {
     text:
       `*Music AI — admin panel*\n\n` +
       `Auto-posting: ${state.autopost_enabled ? "ON (every 24h)" : "OFF"}\n` +
       `Plan progress: day ${state.day_index + 1} / ${PLAN_LENGTH}\n` +
       `Last post: ${state.last_post_at ? new Date(state.last_post_at).toUTCString() : "never"}\n` +
-      `Next up: ${next.title} — ${next.theme}`,
+      `Next up: ${next.title} — ${next.theme}` +
+      s,
     reply_markup: {
       inline_keyboard: [
         [
@@ -159,8 +207,11 @@ export function adminPanel(state: BotState) {
             : { text: "Start auto-posting (24h)", callback_data: "ap:on" },
         ],
         [{ text: "Post now", callback_data: "ap:now" }],
-        [{ text: "Refresh", callback_data: "ap:status" }],
+        [{ text: "Add DeepAI key", callback_data: "ap:key" }],
+        [{ text: "New task", callback_data: "ap:newtask" }],
+        [{ text: "Refresh stats", callback_data: "ap:status" }],
       ],
     },
+
   };
 }
