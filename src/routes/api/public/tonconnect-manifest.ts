@@ -1,15 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
+import icon from "@/assets/music-wallet-icon.png.asset.json";
+
+/** Public site identity shown by TON wallets during connect. */
+const SITE = "https://music.megsyai.com";
 
 export const Route = createFileRoute("/api/public/tonconnect-manifest")({
   server: {
     handlers: {
-      GET: async ({ request }) => {
-        const origin = new URL(request.url).origin;
+      GET: async () => {
         return new Response(
           JSON.stringify({
-            url: origin,
-            name: "Music AI",
-            iconUrl: `${origin}/favicon.ico`,
+            url: SITE,
+            name: "MUSIC",
+            iconUrl: `${SITE}${icon.url}`,
           }),
           {
             headers: {

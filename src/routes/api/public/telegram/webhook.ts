@@ -21,8 +21,11 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           setState,
           publishNext,
           adminPanel,
+          getStats,
           APP_URL,
+          MINI_APP_LINK,
         } = await import("@/lib/telegram-bot.server");
+
 
         const update = (await request.json()) as any;
 
@@ -51,9 +54,22 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             } else if (action === "ap:now") {
               const r = await publishNext();
               note = r.ok ? "Posted to the channel" : `Failed: ${r.error}`;
+            } else if (action === "ap:key" || action === "ap:newtask") {
+              const { setDraft } = await import("@/lib/task-admin.server");
+              await setDraft(from!, { step: action === "ap:key" ? "deepai" : "title" });
+              await tg("sendMessage", {
+                chat_id: cb.message?.chat?.id,
+                text:
+                  action === "ap:key"
+                    ? "Send the new *DeepAI API key*. Send /cancel to stop."
+                    : "New task 1/4\n\nSend the task *name*.",
+                parse_mode: "Markdown",
+              });
+              await tg("answerCallbackQuery", { callback_query_id: cb.id });
+              return Response.json({ ok: true });
             }
 
-            const panel = adminPanel(await getState());
+            const panel = adminPanel(await getState(), await getStats());
             await tg("answerCallbackQuery", { callback_query_id: cb.id, text: note });
             await tg("editMessageText", {
               chat_id: cb.message?.chat?.id,
@@ -63,6 +79,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               reply_markup: panel.reply_markup,
             });
             return Response.json({ ok: true });
+
           }
 
           const msg = update.message;
@@ -92,7 +109,23 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             }
 
             const draft = await getDraft(msg.from.id);
+            if (draft?.step === "deepai" && text) {
+              const { addKey, listKeys } = await import("@/lib/deepai.server");
+              try {
+                await addKey(text.trim());
+                await clearDraft(msg.from.id);
+                const keys = await listKeys();
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: `Key added. Active keys: ${keys.filter((k) => k.active).length}/${keys.length}`,
+                });
+              } catch (err) {
+                await tg("sendMessage", { chat_id: chatId, text: `Failed: ${String(err)}` });
+              }
+              return Response.json({ ok: true });
+            }
             if (draft?.step) {
+
               if (draft.step === "title" && text) {
                 await setDraft(msg.from.id, { ...draft, title: text, step: "image" });
                 await tg("sendMessage", {
@@ -161,7 +194,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               await tg("sendMessage", { chat_id: chatId, text: "Admins only." });
               return Response.json({ ok: true });
             }
-            const panel = adminPanel(await getState());
+            const panel = adminPanel(await getState(), await getStats());
             await tg("sendMessage", {
               chat_id: chatId,
               text: panel.text,
@@ -178,10 +211,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               caption: "*Music AI*\n\nMine MUSIC, GRAM and USDT from your own AI studio.",
               parse_mode: "Markdown",
               reply_markup: {
-                inline_keyboard: [
-                  [{ text: "Open Music AI", web_app: { url: APP_URL } }],
-                ],
+                inline_keyboard: [[{ text: "Open Music AI", url: MINI_APP_LINK }]],
               },
+
             });
           }
         } catch (e) {
