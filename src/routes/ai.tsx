@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Mic, Music2, Play, Sparkles, Square, Trash2 } from "lucide-react";
+import { HelpCircle, Mic, Music2, Play, Square, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
 import { TrackPlayer, type Composition } from "@/lib/synth";
-import { activePlan, formatNumber, type Track } from "@/lib/game";
+import { activePlan, type Track } from "@/lib/game";
 
 export const Route = createFileRoute("/ai")({
   head: () => ({
@@ -25,18 +25,10 @@ export const Route = createFileRoute("/ai")({
   component: AiPage,
 });
 
-const IDEAS = [
-  "Calm lo-fi for rainy nights",
-  "Hard-hitting trap beat",
-  "80s synthwave drive",
-  "Sad piano with strings",
-  "Modern folk groove",
-  "Ambient space focus",
-];
-
 function AiPage() {
   const { state, addTrack, grant } = useGame();
   const [mode, setMode] = useState<"voice" | "prompt">("voice");
+  const [help, setHelp] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState("");
@@ -219,6 +211,24 @@ function AiPage() {
         ))}
       </div>
 
+      <div className="flex justify-center">
+        <button
+          onClick={() => setHelp((h) => !h)}
+          className="glass-thin flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] text-foreground/70 transition-transform duration-200 active:scale-95"
+        >
+          <HelpCircle size={13} /> How does this work?
+        </button>
+      </div>
+
+      {help ? (
+        <section className="liquid-glass animate-fade-up space-y-2 rounded-3xl p-4 text-[11px] leading-relaxed text-foreground/70">
+          <p>1. Pick "Sing a song" and record your voice, or "Describe it" and type the style.</p>
+          <p>2. Tap the button below — the AI composes an instrumental and paints a cover.</p>
+          <p>3. Play it back: your voice and the AI music are mixed together.</p>
+          <p>4. Every finished song adds a 24-hour mining bonus to all three coins.</p>
+        </section>
+      ) : null}
+
       <section className="liquid-glass animate-fade-up delay-1 rounded-3xl p-5">
         {mode === "voice" ? (
           <>
@@ -288,17 +298,6 @@ function AiPage() {
               placeholder="e.g. calm lo-fi with soft piano and light drums"
               className="glass-thin mt-3 w-full resize-none rounded-2xl p-3 text-sm outline-none placeholder:text-foreground/40 focus:ring-2 focus:ring-blue-700"
             />
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {IDEAS.map((i) => (
-                <button
-                  key={i}
-                  onClick={() => setPrompt(i)}
-                  className="glass-thin rounded-lg px-3 py-1 text-[11px] text-foreground/70 transition-transform duration-200 active:scale-95"
-                >
-                  {i}
-                </button>
-              ))}
-            </div>
           </>
         )}
 
@@ -307,7 +306,6 @@ function AiPage() {
           disabled={loading}
           className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3 text-sm text-gray-900 transition-transform duration-200 active:scale-95 disabled:opacity-60"
         >
-          <Sparkles size={14} strokeWidth={2} />
           {loading ? step || "Working..." : mode === "voice" ? "Make my song" : "Generate track"}
         </button>
         <p className="mt-2 text-center text-[11px] text-foreground/60">
@@ -373,9 +371,6 @@ function AiPage() {
         </section>
       )}
 
-      <p className="pb-2 text-center text-[11px] text-foreground/40">
-        Balance: {formatNumber(state.balance)} MUSIC
-      </p>
     </div>
   );
 }

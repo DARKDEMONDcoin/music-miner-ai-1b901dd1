@@ -1,20 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Lock, Rocket, Sparkles, Timer, Zap } from "lucide-react";
-import { CoinIcon, MusicIcon } from "@/components/CoinIcon";
+import { ChevronRight, Lock, Timer } from "lucide-react";
 import { toast } from "sonner";
+import { CoinIcon, MusicIcon } from "@/components/CoinIcon";
+import { VinylDisc } from "@/components/VinylDisc";
 import { useGame } from "@/hooks/useGame";
 import {
   MINERS,
-  activeTrack,
+  bestNft,
   cycleDone,
   fillPct,
-  formatDuration,
-  minerUnlocked,
-  msLeft,
   formatCrypto,
+  formatDuration,
   formatNumber,
   minerPending,
-  minerRate,
+  minerUnlocked,
+  msLeft,
   multiplier,
   pending,
   ratePerHour,
@@ -40,27 +40,16 @@ export const Route = createFileRoute("/")({
 function MinePage() {
   const { state, now, collect } = useGame();
 
-  const ready = pending(state, now);
-  const fill = fillPct(state, now);
-  const rate = ratePerHour(state);
-  const track = activeTrack(state);
   const done = cycleDone(state, now);
   const left = msLeft(state, now);
-  const level = rigLevel(state);
-
-  const gramMiner = MINERS[0]!;
-  const usdtMiner = MINERS[1]!;
+  const fill = fillPct(state, now);
+  const nft = bestNft(state);
 
   const onCollect = () => {
-    if (!done) {
-      toast("Mining cycle still running", {
-        description: `Collect unlocks in ${formatDuration(left)}.`,
-      });
-      return;
-    }
+    if (!done) return;
     const gained = collect();
     if (gained.music <= 0 && gained.gram <= 0 && gained.usdt <= 0) {
-      toast("Nothing to collect yet", { description: "Come back later or upgrade your studio." });
+      toast("Nothing to collect yet");
       return;
     }
     const extra = [
@@ -73,46 +62,40 @@ function MinePage() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Balance */}
-      <section className="liquid-glass animate-fade-up delay-1 rounded-3xl p-5 text-center">
-        <p className="text-[11px] uppercase tracking-widest text-foreground/40">Balance</p>
-        <p className="mt-1 flex items-center justify-center gap-2 text-4xl tracking-tight">
-          <MusicIcon size={26} />
+      <section className="animate-fade-up pt-1 text-center">
+        <p className="text-[11px] uppercase tracking-[0.2em] text-foreground/35">Balance</p>
+        <p className="mt-1 flex items-center justify-center gap-2 text-[2.6rem] leading-none tracking-tight">
+          <MusicIcon size={30} />
           {formatNumber(state.balance)}
         </p>
-        <div className="mt-4 flex items-center justify-center gap-2 text-[11px]">
-          <span className="glass-thin flex items-center gap-1.5 rounded-xl px-3 py-1.5">
-            <Zap size={12} strokeWidth={2} className="text-blue-400" /> {formatNumber(rate)} / hr
+        <div className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-foreground/60">
+          <span className="glass-thin rounded-full px-2.5 py-1">
+            {formatNumber(ratePerHour(state))} / hr
           </span>
-          <span className="glass-thin rounded-xl px-3 py-1.5">
-            {multiplier(state).toFixed(2)}x boost
+          <span className="glass-thin rounded-full px-2.5 py-1">
+            {multiplier(state).toFixed(2)}x
           </span>
-          <span className="glass-thin rounded-xl px-3 py-1.5">Lv {level}</span>
+          <span className="glass-thin rounded-full px-2.5 py-1">Power {rigLevel(state)}</span>
         </div>
       </section>
 
-      {/* Collect */}
-      <section className="liquid-glass animate-fade-up delay-2 rounded-3xl p-5">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-widest text-foreground/40">
-              Ready to collect
-            </p>
-            <p className="mt-1 text-3xl tracking-tight">{formatNumber(ready)}</p>
-            <p className="mt-1 flex items-center gap-1 text-[11px] text-foreground/50">
-              <Timer size={11} />
-              {done ? "Cycle complete — collect now" : `Unlocks in ${formatDuration(left)}`}
-            </p>
-          </div>
-          <p className="text-[11px] text-foreground/50">
-            {fill.toFixed(0)}% of {storageHours(state)}h
-          </p>
+      {/* Mining cycle */}
+      <section className="liquid-glass animate-fade-up delay-1 rounded-3xl p-5">
+        <div className="flex items-baseline justify-between">
+          <p className="text-[11px] uppercase tracking-widest text-foreground/40">Mining now</p>
+          <p className="text-[11px] text-foreground/40">{storageHours(state)}h cycle</p>
         </div>
+        <p className="mt-1 text-3xl tracking-tight">{formatNumber(pending(state, now))}</p>
+        <p className="mt-1 flex items-center gap-1 text-[11px] text-foreground/50">
+          <Timer size={11} />
+          {done ? "Cycle complete" : `Ready in ${formatDuration(left)}`}
+        </p>
 
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/15">
+        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/12">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-blue-400 to-blue-700 transition-[width] duration-700"
+            className="h-full rounded-full bg-gradient-to-r from-sky-300 to-blue-600 transition-[width] duration-700"
             style={{ width: `${fill}%` }}
           />
         </div>
@@ -120,68 +103,59 @@ function MinePage() {
         <button
           onClick={onCollect}
           disabled={!done}
-          className={`mt-4 w-full rounded-2xl py-3 text-sm transition-transform duration-200 active:scale-95 ${
-            done ? "bg-white text-gray-900 hover:scale-[1.02]" : "glass-thin text-foreground/45"
+          className={`mt-4 w-full rounded-2xl py-3.5 text-sm transition-transform duration-200 active:scale-95 ${
+            done ? "bg-white text-gray-900" : "glass-thin text-foreground/40"
           }`}
         >
-          {done ? "Collect earnings" : `Collect in ${formatDuration(left)}`}
+          {done ? "Collect earnings" : formatDuration(left)}
         </button>
       </section>
 
       {/* Crypto balances */}
-      <section className="animate-fade-up delay-3 grid grid-cols-2 gap-3">
-        {[
-          { m: gramMiner, balance: state.gram, pend: minerPending(state, gramMiner, now) },
-          { m: usdtMiner, balance: state.usdt, pend: minerPending(state, usdtMiner, now) },
-        ].map(({ m, balance, pend }) => (
-          <div key={m.id} className="liquid-glass rounded-3xl p-4">
-            <div className="flex items-center gap-2">
-              <CoinIcon id={m.id} size={22} />
-              <span className="text-[11px] text-foreground/60">{m.symbol}</span>
+      <section className="animate-fade-up delay-2 grid grid-cols-2 gap-3">
+        {MINERS.map((m) => {
+          const balance = m.id === "gram" ? state.gram : state.usdt;
+          const unlocked = minerUnlocked(state, m.id);
+          return (
+            <div key={m.id} className="liquid-glass rounded-3xl p-4">
+              <div className="flex items-center gap-2">
+                <CoinIcon id={m.id} size={22} />
+                <span className="text-[11px] text-foreground/55">{m.symbol}</span>
+              </div>
+              <p className="mt-3 text-xl tracking-tight">{formatCrypto(balance)}</p>
+              <p className="mt-1 flex items-center gap-1 text-[10px] text-foreground/45">
+                {unlocked ? (
+                  `+${formatCrypto(minerPending(state, m, now))} mining`
+                ) : (
+                  <>
+                    <Lock size={9} /> Locked
+                  </>
+                )}
+              </p>
             </div>
-            <p className="mt-3 text-xl tracking-tight">{formatCrypto(balance)}</p>
-            <p className="mt-1 flex items-center gap-1 text-[10px] text-foreground/50">
-              {!minerUnlocked(state, m.id) ? (
-                <>
-                  <Lock size={9} /> Unlock in the store
-                </>
-              ) : level > 0 ? (
-                `+${formatCrypto(pend)} ready · ${formatCrypto(minerRate(state, m))}/hr`
-              ) : (
-                "Upgrade once to start mining"
-              )}
-            </p>
-          </div>
-        ))}
+          );
+        })}
       </section>
 
-      {/* Actions */}
-      <section className="animate-fade-up delay-4 grid grid-cols-2 gap-3">
-        <Link
-          to="/studio"
-          className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 py-3 text-sm transition-transform duration-200 hover:scale-[1.02] active:scale-95"
-        >
-          <Rocket size={15} strokeWidth={2} /> Upgrade
-        </Link>
-        <Link
-          to="/ai"
-          className="liquid-glass flex items-center justify-center gap-2 rounded-2xl py-3 text-sm transition-transform duration-200 hover:scale-[1.02] active:scale-95"
-        >
-          <Sparkles size={15} strokeWidth={2} /> Make a track
-        </Link>
-      </section>
-
-      {track ? (
-        <section className="liquid-glass animate-fade-up delay-5 flex items-center gap-3 rounded-3xl p-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-400 to-blue-700">
-            <Sparkles size={18} strokeWidth={2} />
+      {/* Featured NFT */}
+      {nft ? (
+        <section className="liquid-glass animate-fade-up delay-3 rounded-3xl p-4">
+          <div className="flex items-center gap-4">
+            <VinylDisc track={nft.track} tone={nft.tone} size={92} />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-widest text-foreground/35">Your top NFT</p>
+              <p className="mt-1 truncate text-base tracking-tight">{nft.name}</p>
+              <p className="text-[11px] text-foreground/45">
+                {nft.artist} · x{nft.multiplier} · +{nft.power} power
+              </p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm">{track.title}</p>
-            <p className="text-[11px] text-foreground/60">
-              {track.genre} · +{track.bonusPct}% mining bonus
-            </p>
-          </div>
+          <Link
+            to="/studio"
+            className="mt-3 flex items-center justify-between rounded-2xl bg-white/8 px-4 py-2.5 text-xs text-foreground/75 transition-transform duration-200 active:scale-95"
+          >
+            Collect more Music NFTs <ChevronRight size={14} />
+          </Link>
         </section>
       ) : null}
     </div>

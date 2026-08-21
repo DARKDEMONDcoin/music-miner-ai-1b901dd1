@@ -1,6 +1,3 @@
-import type { LucideIcon } from "lucide-react";
-import { Crown, Rocket, Zap } from "lucide-react";
-
 export type PlanId = "starter" | "pro" | "elite";
 
 export type Plan = {
@@ -8,22 +5,22 @@ export type Plan = {
   name: string;
   tagline: string;
   multiplier: number; // multiplies every coin you mine
-  power: number; // rig levels granted while the plan is active
+  power: number; // hash power granted forever
   aiTracks: number; // AI generations per day
   storageHours: number; // mining cycle length
   unlocks: ("gram" | "usdt")[];
-  stars: number; // Telegram Stars per month
-  gram: number; // GRAM per month
-  icon: LucideIcon;
+  stars: number; // one-time Telegram Stars price
+  gram: number; // one-time GRAM price
   highlight?: boolean;
   badge?: string;
 };
 
+/** One-time purchases. Every plan is a lifetime unlock — never a renewal. */
 export const PLANS: Plan[] = [
   {
     id: "starter",
     name: "Starter",
-    tagline: "Turn on real crypto mining",
+    tagline: "Switch on real GRAM mining",
     multiplier: 2,
     power: 3,
     aiTracks: 3,
@@ -31,7 +28,6 @@ export const PLANS: Plan[] = [
     unlocks: ["gram"],
     stars: 250,
     gram: 1.2,
-    icon: Zap,
   },
   {
     id: "pro",
@@ -44,7 +40,6 @@ export const PLANS: Plan[] = [
     unlocks: ["gram", "usdt"],
     stars: 650,
     gram: 3.2,
-    icon: Rocket,
     highlight: true,
     badge: "Most popular",
   },
@@ -59,7 +54,6 @@ export const PLANS: Plan[] = [
     unlocks: ["gram", "usdt"],
     stars: 1500,
     gram: 7.4,
-    icon: Crown,
     badge: "Best value",
   },
 ];

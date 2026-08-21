@@ -1,7 +1,11 @@
 import { Copy, Send, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
-import { formatNumber } from "@/lib/game";
+import { VinylDisc } from "@/components/VinylDisc";
+import { formatNumber, REFERRAL_NFT_ID, REFERRAL_NFT_TARGET } from "@/lib/game";
+import { nftById } from "@/lib/nfts";
+
+const REWARD_NFT = nftById(REFERRAL_NFT_ID)!;
 
 const TIERS = [
   { label: "Friend joins", reward: 1000 },
@@ -12,6 +16,7 @@ const TIERS = [
 export function ReferralPanel() {
   const { state } = useGame();
   const link = `https://t.me/Mosuclbot?start=${state.refCode}`;
+  const owned = (state.nfts ?? []).includes(REFERRAL_NFT_ID);
 
   return (
     <div className="space-y-3">
@@ -58,6 +63,33 @@ export function ReferralPanel() {
           >
             <Send size={14} strokeWidth={2} /> Share
           </a>
+        </div>
+      </section>
+
+      {/* Free NFT milestone */}
+      <section className="liquid-glass animate-fade-up delay-3 rounded-2xl p-4">
+        <div className="flex items-center gap-4">
+          <VinylDisc track={REWARD_NFT.track} tone={REWARD_NFT.tone} size={88} />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm tracking-tight">Invite {REFERRAL_NFT_TARGET} friends → free NFT</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-foreground/55">
+              "{REWARD_NFT.name}" unlocks GRAM and USDT mining forever and adds x
+              {REWARD_NFT.multiplier} to everything you mine.
+            </p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/12">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-300 to-amber-600 transition-[width] duration-700"
+                style={{
+                  width: `${Math.min(100, (state.referrals / REFERRAL_NFT_TARGET) * 100)}%`,
+                }}
+              />
+            </div>
+            <p className="mt-1 text-[10px] text-foreground/45">
+              {owned
+                ? "Unlocked — it is mining for you"
+                : `${Math.min(state.referrals, REFERRAL_NFT_TARGET)} / ${REFERRAL_NFT_TARGET} friends`}
+            </p>
+          </div>
         </div>
       </section>
 

@@ -10,8 +10,12 @@ import {
 import {
   INSTRUMENTS,
   AD_MILESTONES,
+  FOREVER,
   MINERS,
+  REFERRAL_NFT_ID,
+  REFERRAL_NFT_TARGET,
   STORAGE_KEY,
+  WELCOME_NFT_ID,
   cycleDone,
   initialState,
   minerPending,
@@ -41,9 +45,8 @@ type Ctx = {
   unlockMiner: (id: MinerId) => void;
   watchedAd: () => void;
   claimAdMilestone: (id: string) => boolean;
-  addServer: (id: string, units?: number) => void;
   addNft: (id: string) => void;
-  activateSubscription: (planId: string, days?: number) => void;
+  activateSubscription: (planId: string) => void;
   reset: () => void;
 };
 
@@ -60,6 +63,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = { ...initialState(), ...(JSON.parse(raw) as GameState) };
+        /* Everyone owns the free welcome record. */
+        if (!(parsed.nfts ?? []).includes(WELCOME_NFT_ID)) {
+          parsed.nfts = [...(parsed.nfts ?? []), WELCOME_NFT_ID];
+        }
+        if (
+          parsed.referrals >= REFERRAL_NFT_TARGET &&
+          !parsed.nfts.includes(REFERRAL_NFT_ID)
+        ) {
+          parsed.nfts = [...parsed.nfts, REFERRAL_NFT_ID];
+        }
         const today = todayStamp();
         if (parsed.dayStamp !== today) {
           const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
@@ -167,7 +180,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
   );
 
   const addReferral = useCallback(() => {
-    setState((s) => ({ ...s, referrals: s.referrals + 1, balance: s.balance + 1000 }));
+    setState((s) => {
+      const referrals = s.referrals + 1;
+      const nfts =
+        referrals >= REFERRAL_NFT_TARGET && !(s.nfts ?? []).includes(REFERRAL_NFT_ID)
+          ? [...(s.nfts ?? []), REFERRAL_NFT_ID]
+          : s.nfts;
+      return { ...s, referrals, balance: s.balance + 1000, nfts };
+    });
   }, []);
 
   const connectWallet = useCallback((address: string) => {
@@ -220,25 +240,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return ok;
   }, []);
 
-  const addServer = useCallback((id: string, units = 1) => {
-    setState((s) => ({
-      ...s,
-      servers: { ...(s.servers ?? {}), [id]: (s.servers?.[id] ?? 0) + units },
-    }));
-  }, []);
-
   const addNft = useCallback((id: string) => {
     setState((s) =>
       (s.nfts ?? []).includes(id) ? s : { ...s, nfts: [...(s.nfts ?? []), id] },
     );
   }, []);
 
-  const activateSubscription = useCallback((planId: string, days = 30) => {
-    setState((s) => ({
-      ...s,
-      planId,
-      planUntil: Math.max(s.planUntil ?? 0, Date.now()) + days * 86_400_000,
-    }));
+  /** Subscriptions are one-off and last forever. */
+  const activateSubscription = useCallback((planId: string) => {
+    setState((s) => ({ ...s, planId, planUntil: FOREVER }));
   }, []);
 
   const reset = useCallback(() => setState(initialState()), []);
@@ -263,7 +273,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       unlockMiner,
       watchedAd,
       claimAdMilestone,
-      addServer,
       addNft,
       activateSubscription,
       reset,
@@ -287,7 +296,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
       unlockMiner,
       watchedAd,
       claimAdMilestone,
-      addServer,
       addNft,
       activateSubscription,
       reset,

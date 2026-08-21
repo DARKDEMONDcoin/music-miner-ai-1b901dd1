@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 export type CoinPrice = { usd: number; change24h: number };
 export type Prices = Record<"gram" | "ton" | "usdt", CoinPrice>;
 
-const IDS = { gram: "gram-2", ton: "the-open-network", usdt: "tether" } as const;
+const IDS = { gram: "the-open-network", ton: "the-open-network", usdt: "tether" } as const;
 
 /** Live market prices from the public CoinGecko API (open, no key required). */
 export const getPrices = createServerFn({ method: "GET" }).handler(async () => {

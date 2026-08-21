@@ -128,7 +128,7 @@ export type Track = {
   expiresAt: number;
 };
 
-import { SERVERS, NFTS } from "@/lib/servers";
+import { NFTS } from "@/lib/nfts";
 import { planById } from "@/lib/plans";
 
 export type GameState = {
@@ -155,16 +155,17 @@ export type GameState = {
   adsWatched: number;
   /** USDT already paid out from the ad milestones. */
   adRewardsClaimed: string[];
-  /** Rented mining servers: serverId -> units owned. */
-  servers: Record<string, number>;
-  /** Owned NFT card ids — permanent multipliers. */
+  /** Owned Music NFT ids — permanent rigs. */
   nfts: string[];
-  /** Active monthly subscription. */
+  /** Lifetime subscription (planUntil is a far-future timestamp). */
   planId: string | null;
   planUntil: number;
 };
 
 export const STORAGE_KEY = "music-ai-state-v1";
+
+/** Subscriptions never expire — this is the "forever" timestamp. */
+export const FOREVER = 4_102_444_800_000; // 2100-01-01
 
 export function todayStamp() {
   return new Date().toISOString().slice(0, 10);
@@ -196,8 +197,7 @@ export function initialState(): GameState {
     minersUnlocked: { gram: false, usdt: false },
     adsWatched: 0,
     adRewardsClaimed: [],
-    servers: {},
-    nfts: [],
+    nfts: [WELCOME_NFT_ID],
     planId: null,
     planUntil: 0,
   };
@@ -213,9 +213,22 @@ export function isPremium(s: GameState) {
   return s.premiumUntil > Date.now() || activePlan(s) !== null;
 }
 
-/** Rig levels coming from rented servers. */
-export function serverPower(s: GameState) {
-  return SERVERS.reduce((sum, def) => sum + def.power * (s.servers?.[def.id] ?? 0), 0);
+/** The NFT everyone receives for free on first launch. */
+export const WELCOME_NFT_ID = "welcome-nft";
+/** Free NFT unlocked after inviting 5 friends. */
+export const REFERRAL_NFT_ID = "friends-nft";
+export const REFERRAL_NFT_TARGET = 5;
+
+/** Owned NFTs, strongest first. */
+export function ownedNfts(s: GameState) {
+  return NFTS.filter((n) => (s.nfts ?? []).includes(n.id)).sort(
+    (a, b) => b.multiplier * b.power - a.multiplier * a.power,
+  );
+}
+
+/** The strongest NFT the user owns — featured on the home screen. */
+export function bestNft(s: GameState) {
+  return ownedNfts(s)[0] ?? null;
 }
 
 /** Rig levels coming from owned NFT cards. */
@@ -228,11 +241,15 @@ export function nftMultiplier(s: GameState) {
   return NFTS.reduce((m, n) => m * ((s.nfts ?? []).includes(n.id) ? n.multiplier : 1), 1);
 }
 
+/** MUSIC per hour granted by each point of hash power. */
+export const MUSIC_PER_POWER = 25;
+
 export function baseRatePerHour(s: GameState) {
-  return INSTRUMENTS.reduce(
+  const instruments = INSTRUMENTS.reduce(
     (sum, i) => sum + instrumentRate(i, s.levels[i.id] ?? 0),
     0,
   );
+  return instruments + rigLevel(s) * MUSIC_PER_POWER;
 }
 
 export function activeTrack(s: GameState): Track | null {
@@ -346,18 +363,32 @@ export function minerUpgradeCost(m: Miner, level: number) {
 export function rigLevel(s: GameState) {
   const inst = INSTRUMENTS.reduce((sum, i) => sum + (s.levels[i.id] ?? 0), 0);
   const plan = activePlan(s);
-  return inst + (s.bonusLevels ?? 0) + serverPower(s) + nftPower(s) + (plan?.power ?? 0);
+  return inst + (s.bonusLevels ?? 0) + nftPower(s) + (plan?.power ?? 0);
 }
 
 export function minerUnlocked(s: GameState, id: MinerId) {
   if (s.minersUnlocked?.[id]) return true;
-  return Boolean(activePlan(s)?.unlocks.includes(id));
+  if (activePlan(s)?.unlocks.includes(id)) return true;
+  return ownedNfts(s).some((n) => n.unlocks.includes(id));
+}
+
+/** Coins this NFT alone adds per day, for the three studio counters. */
+export function nftDaily(s: GameState, nftId: string) {
+  const has = (s.nfts ?? []).includes(nftId);
+  const base: GameState = has ? s : { ...s, nfts: [...(s.nfts ?? []), nftId] };
+  const without: GameState = { ...s, nfts: (s.nfts ?? []).filter((n) => n !== nftId) };
+  const d = (fn: (x: GameState) => number) => Math.max(0, fn(base) - fn(without)) * 24;
+  return {
+    music: d((x) => ratePerHour(x)),
+    gram: d((x) => minerRate(x, MINERS[0]!)),
+    usdt: d((x) => minerRate(x, MINERS[1]!)),
+  };
 }
 
 export function minerRate(s: GameState, m: Miner) {
   const level = rigLevel(s);
   if (level <= 0 || !minerUnlocked(s, m.id)) return 0;
-  const raw = m.baseRate * Math.pow(MINER_RATE_GROWTH, level - 1);
+  const raw = m.baseRate * level;
   return raw * (isPremium(s) ? 2 : 1) * (s.boosterUntil > Date.now() ? 1.5 : 1);
 }
 
