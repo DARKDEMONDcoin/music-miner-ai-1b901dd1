@@ -128,7 +128,7 @@ export type Track = {
   expiresAt: number;
 };
 
-import { SERVERS, NFTS } from "@/lib/servers";
+import { NFTS } from "@/lib/nfts";
 import { planById } from "@/lib/plans";
 
 export type GameState = {
