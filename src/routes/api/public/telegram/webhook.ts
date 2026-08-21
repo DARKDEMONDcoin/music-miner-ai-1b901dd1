@@ -21,8 +21,11 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           setState,
           publishNext,
           adminPanel,
+          getStats,
           APP_URL,
+          MINI_APP_LINK,
         } = await import("@/lib/telegram-bot.server");
+
 
         const update = (await request.json()) as any;
 
