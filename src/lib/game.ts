@@ -164,6 +164,9 @@ export type GameState = {
 
 export const STORAGE_KEY = "music-ai-state-v1";
 
+/** Subscriptions never expire — this is the "forever" timestamp. */
+export const FOREVER = 4_102_444_800_000; // 2100-01-01
+
 export function todayStamp() {
   return new Date().toISOString().slice(0, 10);
 }
