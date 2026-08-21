@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { MUSIC_BANNER_PATH } from "@/lib/brand";
 
 /** Telegram bot webhook: /start deep link + /101 admin panel. */
 export const Route = createFileRoute("/api/public/telegram/webhook")({
