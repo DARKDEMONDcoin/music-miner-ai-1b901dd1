@@ -15,10 +15,7 @@ import {
   minerPending,
   minerUnlocked,
   msLeft,
-  multiplier,
   pending,
-  ratePerHour,
-  rigLevel,
   storageHours,
 } from "@/lib/game";
 
