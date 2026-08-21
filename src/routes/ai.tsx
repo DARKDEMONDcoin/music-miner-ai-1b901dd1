@@ -149,6 +149,23 @@ function AiPage() {
       }
       setCover(coverUrl);
 
+      /* Sing the generated lyrics when the user did not record their own take. */
+      let audio = voiceUrl;
+      const lyrics = (composition as Composition & { lyrics?: string[] }).lyrics;
+      if (!audio && lyrics && lyrics.length > 0) {
+        setStep("Recording the vocals...");
+        try {
+          const vocalRes = await fetch("/api/ai/vocals", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lyrics, mood: composition.mood }),
+          });
+          if (vocalRes.ok) audio = URL.createObjectURL(await vocalRes.blob());
+        } catch {
+          /* vocals are optional */
+        }
+      }
+
       const bonusPct = 10 + Math.floor(Math.random() * 26);
       const track: Track = {
         id: String(Date.now()),
@@ -156,7 +173,8 @@ function AiPage() {
         genre: composition.genre,
         mood: composition.mood,
         coverUrl,
-        audioUrl: voiceUrl,
+        audioUrl: audio,
+
         bonusPct,
         createdAt: Date.now(),
         expiresAt: Date.now() + 24 * 3_600_000,
