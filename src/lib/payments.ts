@@ -143,13 +143,10 @@ export function commentPayload(text: string) {
   cell[1] = data.length * 2; // all bytes are complete
   cell.set(data, 2);
 
-  const boc = new Uint8Array(8 + cell.length);
-  boc.set([0xb5, 0xee, 0x9c, 0x72, 0x01, 0x01, 0x01, 0x01], 0);
-  // header: magic, flags/size=1, off_bytes=1, cells=1, roots=1
+  // header: magic, flags/size=1, off_bytes=1, cells=1, roots=1, absent=0
   const full = new Uint8Array([
     0xb5, 0xee, 0x9c, 0x72, 0x01, 0x01, 0x01, 0x01, 0x00, cell.length, 0x00, ...cell,
   ]);
-  void boc;
 
   let bin = "";
   for (const b of full) bin += String.fromCharCode(b);
