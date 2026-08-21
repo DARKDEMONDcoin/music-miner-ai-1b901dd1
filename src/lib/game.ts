@@ -210,9 +210,22 @@ export function isPremium(s: GameState) {
   return s.premiumUntil > Date.now() || activePlan(s) !== null;
 }
 
-/** Rig levels coming from rented servers. */
-export function serverPower(s: GameState) {
-  return SERVERS.reduce((sum, def) => sum + def.power * (s.servers?.[def.id] ?? 0), 0);
+/** The NFT everyone receives for free on first launch. */
+export const WELCOME_NFT_ID = "welcome-nft";
+/** Free NFT unlocked after inviting 5 friends. */
+export const REFERRAL_NFT_ID = "friends-nft";
+export const REFERRAL_NFT_TARGET = 5;
+
+/** Owned NFTs, strongest first. */
+export function ownedNfts(s: GameState) {
+  return NFTS.filter((n) => (s.nfts ?? []).includes(n.id)).sort(
+    (a, b) => b.multiplier * b.power - a.multiplier * a.power,
+  );
+}
+
+/** The strongest NFT the user owns — featured on the home screen. */
+export function bestNft(s: GameState) {
+  return ownedNfts(s)[0] ?? null;
 }
 
 /** Rig levels coming from owned NFT cards. */
