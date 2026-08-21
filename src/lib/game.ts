@@ -155,11 +155,9 @@ export type GameState = {
   adsWatched: number;
   /** USDT already paid out from the ad milestones. */
   adRewardsClaimed: string[];
-  /** Rented mining servers: serverId -> units owned. */
-  servers: Record<string, number>;
-  /** Owned NFT card ids — permanent multipliers. */
+  /** Owned Music NFT ids — permanent rigs. */
   nfts: string[];
-  /** Active monthly subscription. */
+  /** Lifetime subscription (planUntil is a far-future timestamp). */
   planId: string | null;
   planUntil: number;
 };
