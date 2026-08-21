@@ -51,7 +51,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Safe area so the Telegram header controls never overlap the content. */}
         <div aria-hidden className="tg-safe-top shrink-0" />
 
-        <main key={pathname} className="page-enter flex-1 px-4 pb-32 pt-2">
+        {/* No remount key here: remounting on every path change caused the
+            annoying "flash of refresh" between tabs. */}
+        <main className="flex-1 px-4 pb-32 pt-2">
           {children}
         </main>
 

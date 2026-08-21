@@ -98,8 +98,7 @@ async function cover(prompt: string): Promise<string | null> {
 
 /** Publishes the next post of the 90-day plan to the channel. */
 export async function publishNext() {
-  const channel = process.env["MUSIC_TELEGRAM_CHANNEL_ID"];
-  if (!channel) throw new Error("MUSIC_TELEGRAM_CHANNEL_ID is not configured");
+  const channel = process.env["MUSIC_TELEGRAM_CHANNEL_ID"] || "@muscox";
 
   const state = await getState();
   const post = getPost(state.day_index);
