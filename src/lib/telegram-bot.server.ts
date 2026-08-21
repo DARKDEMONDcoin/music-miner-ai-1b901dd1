@@ -7,7 +7,7 @@ export const APP_URL =
   "https://project--cabbd000-2e02-47bd-9490-cb3561f12ac2-dev.lovable.app";
 
 /** The link used by every "open the app" button (channel posts + bot). */
-export const MINI_APP_LINK = "https://t.me/Mosuclbot/App";
+export const MINI_APP_LINK = "http://t.me/Mosuclbot/App";
 
 /** Numeric channel id avoids username-resolution failures in sendPhoto/sendMessage. */
 export const MUSIC_CHANNEL_ID = -1003503918946;
