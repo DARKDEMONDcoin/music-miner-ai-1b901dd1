@@ -1,11 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { getPrices, type Prices } from "@/lib/prices.functions";
+import { readCache, writeCache } from "@/lib/ui-cache";
 
 /** Live coin prices, refreshed every 2 minutes. */
 export function usePrices() {
   const query = useQuery({
     queryKey: ["prices"],
-    queryFn: () => getPrices(),
+    queryFn: async () => {
+      const res = await getPrices();
+      if (res.prices) writeCache("prices", res.prices);
+      return res;
+    },
+    initialData: () => {
+      const cached = readCache<Prices>("prices");
+      return cached ? { prices: cached, error: null } : undefined;
+    },
     refetchInterval: 120_000,
     staleTime: 60_000,
   });
