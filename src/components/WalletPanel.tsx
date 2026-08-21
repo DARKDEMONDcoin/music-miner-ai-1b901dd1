@@ -46,20 +46,28 @@ function Inner() {
   }
 
   const deposit = async () => {
+    const value = Number(amount);
+    if (!(value > 0)) {
+      toast.error("Enter an amount first");
+      return;
+    }
     setSending(true);
     try {
       await tonConnectUI.sendTransaction({
         validUntil: Math.floor(Date.now() / 1000) + 300,
-        messages: [{ address: TON_WALLET, amount: String(Math.round(amount * 1e9)) }],
+        messages: [{ address: TON_WALLET, amount: String(Math.round(value * 1e9)) }],
       });
       telegram()?.HapticFeedback?.notificationOccurred?.("success");
-      toast.success(`${amount} GRAM sent`, { description: "It lands in a few seconds." });
+      toast.success(`${value} GRAM sent`, { description: "It lands in a few seconds." });
+      setDepositOpen(false);
+      setAmount("");
     } catch {
       toast("Deposit cancelled");
     } finally {
       setSending(false);
     }
   };
+
 
   const onWithdraw = () => {
     const ready = MINERS.filter((m) => (m.id === "gram" ? state.gram : state.usdt) >= m.minWithdraw);
