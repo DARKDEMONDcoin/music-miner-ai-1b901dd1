@@ -25,7 +25,6 @@ export function BoomerangVideoBg() {
         disablePictureInPicture
         aria-hidden
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-background/45 via-background/60 to-background/85" />
     </div>
   );
 }

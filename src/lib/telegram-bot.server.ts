@@ -9,6 +9,9 @@ export const APP_URL =
 /** The link used by every "open the app" button (channel posts + bot). */
 export const MINI_APP_LINK = "https://t.me/Mosuclbot/App";
 
+/** Numeric channel id avoids username-resolution failures in sendPhoto/sendMessage. */
+export const MUSIC_CHANNEL_ID = -1003503918946;
+
 
 function token() {
   const t = process.env["MUSIC_TELEGRAM_BOT_TOKEN"];
@@ -98,7 +101,7 @@ async function cover(prompt: string): Promise<string | null> {
 
 /** Publishes the next post of the 90-day plan to the channel. */
 export async function publishNext() {
-  const channel = process.env["MUSIC_TELEGRAM_CHANNEL_ID"] || "@muscox";
+  const channel = MUSIC_CHANNEL_ID;
 
   const state = await getState();
   const post = getPost(state.day_index);

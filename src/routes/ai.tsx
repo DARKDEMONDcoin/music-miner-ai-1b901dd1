@@ -34,6 +34,7 @@ function AiPage() {
   const [step, setStep] = useState("");
   const [comp, setComp] = useState<Composition | null>(null);
   const [cover, setCover] = useState<string | null>(null);
+  const [generatedAudio, setGeneratedAudio] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const playerRef = useRef<TrackPlayer | null>(null);
 
@@ -44,6 +45,7 @@ function AiPage() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const voiceElRef = useRef<HTMLAudioElement | null>(null);
+  const generatedAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const plan = activePlan(state);
   const todayCount = state.tracks.filter(
@@ -62,6 +64,7 @@ function AiPage() {
     return () => {
       playerRef.current?.stop();
       voiceElRef.current?.pause();
+      generatedAudioRef.current?.pause();
     };
   }, []);
 
@@ -121,6 +124,10 @@ function AiPage() {
     setLoading(true);
     setComp(null);
     setCover(null);
+    setGeneratedAudio((old) => {
+      if (old) URL.revokeObjectURL(old);
+      return null;
+    });
     try {
       setStep(mode === "voice" ? "Building your backing track..." : "Composing...");
       const res = await fetch("/api/ai/compose", {
@@ -151,7 +158,7 @@ function AiPage() {
 
       /* Sing the generated lyrics when the user did not record their own take. */
       let audio = voiceUrl;
-      const lyrics = (composition as Composition & { lyrics?: string[] }).lyrics;
+      const lyrics = composition.lyrics;
       if (!audio && lyrics && lyrics.length > 0) {
         setStep("Recording the vocals...");
         try {
@@ -160,7 +167,12 @@ function AiPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ lyrics, mood: composition.mood }),
           });
-          if (vocalRes.ok) audio = URL.createObjectURL(await vocalRes.blob());
+          if (!vocalRes.ok) {
+            const error = (await vocalRes.json().catch(() => ({}))) as { error?: string };
+            throw new Error(error.error ?? "Vocal generation failed");
+          }
+          audio = URL.createObjectURL(await vocalRes.blob());
+          setGeneratedAudio(audio);
         } catch {
           /* vocals are optional */
         }
@@ -195,14 +207,16 @@ function AiPage() {
     if (playing) {
       playerRef.current?.stop();
       voiceElRef.current?.pause();
+      generatedAudioRef.current?.pause();
       setPlaying(false);
       return;
     }
     playerRef.current = new TrackPlayer();
     setPlaying(true);
-    if (mode === "voice" && voiceUrl && voiceElRef.current) {
-      voiceElRef.current.currentTime = 0;
-      void voiceElRef.current.play().catch(() => undefined);
+    const vocalElement = generatedAudio ? generatedAudioRef.current : voiceElRef.current;
+    if (vocalElement) {
+      vocalElement.currentTime = 0;
+      void vocalElement.play().catch(() => undefined);
     }
     await playerRef.current.play(comp, () => setPlaying(false));
   }
@@ -334,6 +348,9 @@ function AiPage() {
 
       {comp && (
         <section className="liquid-glass animate-fade-up overflow-hidden rounded-3xl">
+          {generatedAudio ? (
+            <audio ref={generatedAudioRef} src={generatedAudio} preload="auto" />
+          ) : null}
           <div
             className="aspect-square w-full bg-blue-700 bg-cover bg-center"
             style={cover ? { backgroundImage: `url(${cover})` } : undefined}
@@ -358,7 +375,7 @@ function AiPage() {
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-700 py-3 text-sm transition-transform duration-200 active:scale-95"
             >
               {playing ? <Square size={14} strokeWidth={2} /> : <Play size={14} strokeWidth={2} />}
-              {playing ? "Stop" : mode === "voice" && voiceUrl ? "Play my song" : "Play track"}
+              {playing ? "Stop" : generatedAudio || voiceUrl ? "Play my song" : "Play track"}
             </button>
           </div>
         </section>
