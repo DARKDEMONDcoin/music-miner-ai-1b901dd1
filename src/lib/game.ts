@@ -264,7 +264,7 @@ export function multiplier(s: GameState) {
   const plan = activePlan(s);
   if (plan) m *= plan.multiplier;
   else if (s.premiumUntil > Date.now()) m *= 2;
-  m *= nftMultiplier(s);
+  
   if (s.boosterUntil > Date.now()) m *= 3;
   const t = activeTrack(s);
   if (t) m *= 1 + t.bonusPct / 100;
