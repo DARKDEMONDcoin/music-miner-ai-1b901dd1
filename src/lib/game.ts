@@ -222,7 +222,7 @@ export const REFERRAL_NFT_TARGET = 5;
 /** Owned NFTs, strongest first. */
 export function ownedNfts(s: GameState) {
   return NFTS.filter((n) => (s.nfts ?? []).includes(n.id)).sort(
-    (a, b) => b.multiplier * b.power - a.multiplier * a.power,
+    (a, b) => b.usdtPerDay * 1e6 + b.musicPerDay - (a.usdtPerDay * 1e6 + a.musicPerDay),
   );
 }
 
@@ -231,17 +231,19 @@ export function bestNft(s: GameState) {
   return ownedNfts(s)[0] ?? null;
 }
 
-/** Rig levels coming from owned NFT cards. */
-export function nftPower(s: GameState) {
-  return NFTS.reduce((sum, n) => sum + ((s.nfts ?? []).includes(n.id) ? n.power : 0), 0);
+/** MUSIC per hour produced by the owned record collection. */
+export function nftMusicPerHour(s: GameState) {
+  return ownedNfts(s).reduce((sum, n) => sum + n.musicPerDay, 0) / 24;
 }
 
-/** Combined permanent multiplier from owned NFT cards. */
-export function nftMultiplier(s: GameState) {
-  return NFTS.reduce((m, n) => m * ((s.nfts ?? []).includes(n.id) ? n.multiplier : 1), 1);
+/** Crypto per hour produced by the owned record collection. */
+export function nftCryptoPerHour(s: GameState, id: MinerId) {
+  return (
+    ownedNfts(s).reduce((sum, n) => sum + (id === "gram" ? n.gramPerDay : n.usdtPerDay), 0) / 24
+  );
 }
 
-/** MUSIC per hour granted by each point of hash power. */
+/** MUSIC per hour granted by each upgrade level. */
 export const MUSIC_PER_POWER = 25;
 
 export function baseRatePerHour(s: GameState) {
@@ -249,7 +251,7 @@ export function baseRatePerHour(s: GameState) {
     (sum, i) => sum + instrumentRate(i, s.levels[i.id] ?? 0),
     0,
   );
-  return instruments + rigLevel(s) * MUSIC_PER_POWER;
+  return instruments + rigLevel(s) * MUSIC_PER_POWER + nftMusicPerHour(s);
 }
 
 export function activeTrack(s: GameState): Track | null {
