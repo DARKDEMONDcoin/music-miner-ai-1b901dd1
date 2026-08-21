@@ -7034,6 +7034,42 @@ export type Database = {
         }
         Relationships: []
       }
+      music_deepai_keys: {
+        Row: {
+          active: boolean
+          api_key: string
+          calls: number
+          created_at: string
+          disabled_reason: string | null
+          failures: number
+          id: string
+          label: string | null
+          last_used_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          api_key: string
+          calls?: number
+          created_at?: string
+          disabled_reason?: string | null
+          failures?: number
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          api_key?: string
+          calls?: number
+          created_at?: string
+          disabled_reason?: string | null
+          failures?: number
+          id?: string
+          label?: string | null
+          last_used_at?: string | null
+        }
+        Relationships: []
+      }
       music_task_completions: {
         Row: {
           created_at: string
