@@ -106,8 +106,9 @@ export async function publishNext() {
   const image = await cover(post.imagePrompt);
 
   const reply_markup = {
-    inline_keyboard: [[{ text: post.cta, url: APP_URL }]],
+    inline_keyboard: [[{ text: post.cta, url: MINI_APP_LINK }]],
   };
+
 
   const sent = image
     ? await tg("sendPhoto", {
