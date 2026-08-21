@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Check, Clock, Infinity as InfinityIcon, Loader2, Sparkles, Star, Zap } from "lucide-react";
+import { Check, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
 import { useGramPay } from "@/hooks/useGramPay";
-import { CoinIcon, GramIcon, MusicIcon } from "@/components/CoinIcon";
+import { GramIcon } from "@/components/CoinIcon";
 import { activePlan } from "@/lib/game";
 import { PLANS, type Plan } from "@/lib/plans";
 import { telegram } from "@/lib/payments";
@@ -35,7 +35,7 @@ export function StorePanel() {
           if (status === "paid") {
             activateSubscription(plan.id);
             telegram()?.HapticFeedback?.notificationOccurred?.("success");
-            toast.success(`${plan.name} unlocked forever`);
+            toast.success(`${plan.name} membership unlocked`);
           } else if (status === "failed") toast.error("Payment failed");
         });
       } else {
@@ -52,12 +52,11 @@ export function StorePanel() {
     <div className="space-y-3">
       <section className="animate-fade-up delay-1 px-1 text-center">
         <p className="text-lg tracking-tight">
-          {current ? `${current.name} is yours forever` : "One payment. Yours forever."}
+          {current ? `${current.name} membership is active` : "Creator memberships"}
         </p>
-        <p className="mx-auto mt-1 max-w-[19rem] text-[11px] leading-relaxed text-foreground/45">
-          {current
-            ? "Your plan never expires and never renews. Upgrade any time to a higher tier."
-            : "A plan permanently unlocks crypto mining and multiplies every coin you earn. No renewals, no monthly fees."}
+        <p className="mx-auto mt-1 max-w-[20rem] text-[11px] leading-relaxed text-foreground/45">
+          Memberships unlock the AI studio — more songs a day, better quality and creator perks.
+          Mining stays with your Music NFTs. Pay once, keep it forever.
         </p>
       </section>
 
@@ -72,7 +71,7 @@ export function StorePanel() {
               plan.highlight ? "ring-1 ring-white/35" : ""
             }`}
           >
-            <div className="flex items-center justify-between px-4 pt-4">
+            <div className="flex items-start justify-between px-4 pt-4">
               <div className="min-w-0">
                 <p className="text-base tracking-tight">{plan.name}</p>
                 <p className="mt-0.5 text-[11px] text-foreground/45">{plan.tagline}</p>
@@ -84,44 +83,13 @@ export function StorePanel() {
               ) : null}
             </div>
 
-            {/* Which coins this plan mines */}
-            <div className="mt-3 flex items-center gap-2 px-4">
-              <span className="glass-thin flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px]">
-                <MusicIcon size={13} /> MUSIC
-              </span>
-              {(["gram", "usdt"] as const).map((c) => (
-                <span
-                  key={c}
-                  className={`glass-thin flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] ${
-                    plan.unlocks.includes(c) ? "" : "opacity-30"
-                  }`}
-                >
-                  <CoinIcon id={c} size={13} /> {c.toUpperCase()}
-                </span>
-              ))}
-            </div>
-
             <ul className="mt-3 space-y-1.5 px-4 pb-3 text-[11px] text-foreground/70">
-              <li className="flex items-center gap-2">
-                <Zap size={12} className="shrink-0 text-amber-300" />x{plan.multiplier} on every coin
-                you mine
-              </li>
-              <li className="flex items-center gap-2">
-                <Check size={12} className="shrink-0 text-emerald-400" />+{plan.power} permanent hash
-                power
-              </li>
-              <li className="flex items-center gap-2">
-                <Clock size={12} className="shrink-0 text-sky-300" />
-                {plan.storageHours}h mining cycle
-              </li>
-              <li className="flex items-center gap-2">
-                <Sparkles size={12} className="shrink-0 text-fuchsia-300" />
-                {plan.aiTracks} AI songs a day
-              </li>
-              <li className="flex items-center gap-2">
-                <InfinityIcon size={12} className="shrink-0 text-emerald-400" />
-                Lifetime access — pay once
-              </li>
+              {plan.perks.map((perk) => (
+                <li key={perk} className="flex items-start gap-2">
+                  <Check size={12} className="mt-0.5 shrink-0 text-emerald-400" />
+                  {perk}
+                </li>
+              ))}
             </ul>
 
             {active ? (
@@ -164,7 +132,7 @@ export function StorePanel() {
       })}
 
       <p className="px-4 pb-2 text-center text-[11px] leading-relaxed text-foreground/40">
-        Music NFTs stack on top of your plan and add even more power.
+        Want to earn coins? Mining comes from Music NFTs, not memberships.
       </p>
     </div>
   );
