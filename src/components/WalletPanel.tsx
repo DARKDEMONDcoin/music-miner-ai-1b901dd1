@@ -4,13 +4,11 @@ import {
   useTonAddress,
   useTonConnectUI,
 } from "@tonconnect/ui-react";
-import { ArrowDownLeft, ArrowUpRight, Loader2, LogOut, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Loader2, LogOut, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
 import { MINERS } from "@/lib/game";
 import { TON_WALLET, telegram } from "@/lib/payments";
-
-const AMOUNTS = [1, 5, 10];
 
 function short(a: string) {
   return `${a.slice(0, 4)}…${a.slice(-4)}`;
@@ -21,7 +19,9 @@ function Inner() {
   const [tonConnectUI] = useTonConnectUI();
   const { state, connectWallet, disconnectWallet, withdraw } = useGame();
   const [sending, setSending] = useState(false);
-  const [amount, setAmount] = useState(AMOUNTS[0]!);
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [amount, setAmount] = useState("");
+
 
   /* The session restores itself — the user never types an address. */
   useEffect(() => {
