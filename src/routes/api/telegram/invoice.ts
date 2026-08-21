@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { INSTRUMENTS, MINERS, minerUpgradeCost, starsForCost, upgradeCost } from "@/lib/game";
 import { PLANS } from "@/lib/plans";
-import { NFTS, SERVERS } from "@/lib/servers";
+import { NFTS } from "@/lib/nfts";
 
 const ITEMS: Record<string, { title: string; desc: string; stars: number }> = {
   premium: { title: "Premium Pass — 30 days", desc: "2x mining, 24h storage, 5 AI tracks/day", stars: 250 },
@@ -29,7 +29,6 @@ export const Route = createFileRoute("/api/telegram/invoice")({
           upgradeId?: string;
           level?: number;
           planId?: string;
-          serverId?: string;
           nftId?: string;
         };
         const { itemId } = body;
@@ -40,22 +39,17 @@ export const Route = createFileRoute("/api/telegram/invoice")({
           const plan = PLANS.find((p) => p.id === body.planId);
           if (plan) {
             item = {
-              title: `${plan.name} plan — 30 days`,
-              desc: `x${plan.multiplier} mining, +${plan.power} power, ${plan.aiTracks} AI songs a day`,
+              title: `${plan.name} plan — lifetime`,
+              desc: `x${plan.multiplier} mining forever, +${plan.power} power, ${plan.aiTracks} AI songs a day`,
               stars: plan.stars,
             };
-          }
-        } else if (itemId === "server") {
-          const srv = SERVERS.find((x) => x.id === body.serverId);
-          if (srv) {
-            item = { title: srv.name, desc: `+${srv.power} permanent hash power`, stars: srv.stars };
           }
         } else if (itemId === "nft") {
           const nft = NFTS.find((x) => x.id === body.nftId);
           if (nft) {
             item = {
               title: nft.name,
-              desc: `NFT card — x${nft.multiplier} mining and +${nft.power} power forever`,
+              desc: `Music NFT — x${nft.multiplier} mining and +${nft.power} power forever`,
               stars: nft.stars,
             };
           }
