@@ -129,6 +129,33 @@ export function tonkeeperLink(amountTon: number, memo: string) {
   return `https://app.tonkeeper.com/transfer/${TON_WALLET}?amount=${nano}&text=${encodeURIComponent(memo)}`;
 }
 
+/**
+ * Builds the base64 BOC of a simple text-comment message body so TON Connect
+ * can send the transfer automatically — the user never types a comment.
+ */
+export function commentPayload(text: string) {
+  const body = new TextEncoder().encode(text);
+  const data = new Uint8Array(4 + body.length); // op = 0x00000000 (text comment)
+  data.set(body, 4);
+
+  const cell = new Uint8Array(2 + data.length);
+  cell[0] = 0; // no refs, ordinary cell
+  cell[1] = data.length * 2; // all bytes are complete
+  cell.set(data, 2);
+
+  const boc = new Uint8Array(8 + cell.length);
+  boc.set([0xb5, 0xee, 0x9c, 0x72, 0x01, 0x01, 0x01, 0x01], 0);
+  // header: magic, flags/size=1, off_bytes=1, cells=1, roots=1
+  const full = new Uint8Array([
+    0xb5, 0xee, 0x9c, 0x72, 0x01, 0x01, 0x01, 0x01, 0x00, cell.length, 0x00, ...cell,
+  ]);
+  void boc;
+
+  let bin = "";
+  for (const b of full) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
 type TelegramWebApp = {
   openLink?: (url: string, opts?: { try_instant_view?: boolean }) => void;
   openTelegramLink?: (url: string) => void;
