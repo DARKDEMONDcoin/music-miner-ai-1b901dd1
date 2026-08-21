@@ -241,11 +241,15 @@ export function nftMultiplier(s: GameState) {
   return NFTS.reduce((m, n) => m * ((s.nfts ?? []).includes(n.id) ? n.multiplier : 1), 1);
 }
 
+/** MUSIC per hour granted by each point of hash power. */
+export const MUSIC_PER_POWER = 25;
+
 export function baseRatePerHour(s: GameState) {
-  return INSTRUMENTS.reduce(
+  const instruments = INSTRUMENTS.reduce(
     (sum, i) => sum + instrumentRate(i, s.levels[i.id] ?? 0),
     0,
   );
+  return instruments + rigLevel(s) * MUSIC_PER_POWER;
 }
 
 export function activeTrack(s: GameState): Track | null {
@@ -384,7 +388,7 @@ export function nftDaily(s: GameState, nftId: string) {
 export function minerRate(s: GameState, m: Miner) {
   const level = rigLevel(s);
   if (level <= 0 || !minerUnlocked(s, m.id)) return 0;
-  const raw = m.baseRate * Math.pow(MINER_RATE_GROWTH, level - 1);
+  const raw = m.baseRate * level;
   return raw * (isPremium(s) ? 2 : 1) * (s.boosterUntil > Date.now() ? 1.5 : 1);
 }
 
