@@ -62,6 +62,9 @@ function NftsTab() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const owned = state.nfts ?? [];
+  const list = [...NFTS].sort(
+    (a, b) => Number(owned.includes(b.id)) - Number(owned.includes(a.id)),
+  );
 
   const payStars = async (nftId: string, name: string) => {
     setBusy(nftId);
@@ -99,7 +102,7 @@ function NftsTab() {
         Every NFT is a real record. Press play to listen — while you own it, it mines for you 24/7.
       </p>
 
-      {NFTS.map((nft, i) => {
+      {list.map((nft, i) => {
         const has = owned.includes(nft.id);
         const daily = nftDaily(state, nft.id);
         const starsBusy = busy === nft.id;
