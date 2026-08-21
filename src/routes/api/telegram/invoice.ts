@@ -18,9 +18,10 @@ export const Route = createFileRoute("/api/telegram/invoice")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const token = process.env["MUSIC_TELEGRAM_BOT_TOKEN"];
+        const token =
+          process.env["TELEGRAM_STARS_BOT_TOKEN"] ?? process.env["MUSIC_TELEGRAM_BOT_TOKEN"];
         if (!token) {
-          return Response.json({ error: "MUSIC_TELEGRAM_BOT_TOKEN is not configured" }, { status: 503 });
+          return Response.json({ error: "TELEGRAM_STARS_BOT_TOKEN is not configured" }, { status: 503 });
         }
 
         const body = (await request.json()) as {
