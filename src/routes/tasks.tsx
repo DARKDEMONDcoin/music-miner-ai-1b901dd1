@@ -1,21 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Check, Flame, Loader2, Play } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { Check, ExternalLink, Flame, Loader2, Play, Plus, Send } from "lucide-react";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
-import { AD_MILESTONES, TASKS, formatNumber } from "@/lib/game";
+import { useGramPay } from "@/hooks/useGramPay";
+import { AD_MILESTONES, formatNumber } from "@/lib/game";
 import { showRewardedAd } from "@/lib/adsgram";
 import { ReferralPanel } from "@/components/ReferralPanel";
-import { CoinIcon } from "@/components/CoinIcon";
-import dailyCheckin from "@/assets/tasks/daily-checkin.jpg";
-import dailyCollect from "@/assets/tasks/daily-collect.jpg";
-import dailyUpgrade from "@/assets/tasks/daily-upgrade.jpg";
-import dailyTrack from "@/assets/tasks/daily-track.jpg";
+import { CoinIcon, GramIcon } from "@/components/CoinIcon";
+import { telegram } from "@/lib/payments";
+import {
+  completeTask,
+  createTaskRequest,
+  listTasks,
+  TASK_ADMIN_USERNAME,
+  TASK_LISTING_GRAM,
+  type PublicTask,
+} from "@/lib/tasks.functions";
 import joinChannel from "@/assets/tasks/join-channel.jpg";
-import followX from "@/assets/tasks/follow-x.jpg";
-import invite1 from "@/assets/tasks/invite-1.jpg";
-import invite5 from "@/assets/tasks/invite-5.jpg";
-import level10 from "@/assets/tasks/level-10.jpg";
 
 export const Route = createFileRoute("/tasks")({
   head: () => ({
@@ -23,32 +26,23 @@ export const Route = createFileRoute("/tasks")({
       { title: "Tasks & Invite | Music AI" },
       {
         name: "description",
-        content: "Complete daily and social tasks, and invite friends to earn free MUSIC coins.",
+        content: "Complete tasks, watch ads and invite friends to earn free MUSIC and USDT.",
       },
       { property: "og:title", content: "Tasks & Invite | Music AI" },
-      { property: "og:description", content: "Daily tasks, achievements and referral rewards." },
+      { property: "og:description", content: "Tasks, rewarded ads and referral rewards." },
     ],
   }),
   component: TasksPage,
 });
 
-const TASK_IMAGES: Record<string, string> = {
-  "daily-checkin": dailyCheckin,
-  "daily-collect": dailyCollect,
-  "daily-upgrade": dailyUpgrade,
-  "daily-track": dailyTrack,
-  "join-channel": joinChannel,
-  "follow-x": followX,
-  "invite-1": invite1,
-  "invite-5": invite5,
-  "level-10": level10,
-};
-
-const GROUPS = [
-  { kind: "daily", label: "Daily" },
-  { kind: "social", label: "Social" },
-  { kind: "achievement", label: "Achievements" },
-] as const;
+function player() {
+  const user = telegram()?.initDataUnsafe?.user;
+  return {
+    key: user?.id ? `tg:${user.id}` : "guest",
+    id: user?.id ?? null,
+    username: user?.username ?? null,
+  };
+}
 
 function TasksPage() {
   const [tab, setTab] = useState<"tasks" | "invite">("tasks");
@@ -154,8 +148,120 @@ function AdsSection() {
   );
 }
 
+/** Pay 10 GRAM to get your own task listed — the admin contact appears after payment. */
+function AddTaskCard() {
+  const { pay, pending } = useGramPay();
+  const request = useServerFn(createTaskRequest);
+  const [admin, setAdmin] = useState<string | null>(null);
+
+  const start = () => {
+    const p = player();
+    pay("task-listing", TASK_LISTING_GRAM, "Task listing", async () => {
+      try {
+        const res = await request({
+          data: { playerKey: p.key, username: p.username ?? undefined },
+        });
+        setAdmin(res.admin);
+        toast.success("Payment received", { description: "Message the admin to set up your task." });
+      } catch {
+        toast.error("Saved payment, but the contact could not load");
+      }
+    });
+  };
+
+  return (
+    <section className="liquid-glass animate-fade-up delay-2 rounded-2xl p-4">
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+          <Plus size={18} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm">Add your task here</p>
+          <p className="text-[11px] text-foreground/55">
+            List your channel or app for everyone — {TASK_LISTING_GRAM} GRAM one-off fee.
+          </p>
+        </div>
+      </div>
+
+      {admin ? (
+        <a
+          href={`https://t.me/${admin}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-sm text-gray-900 transition-transform duration-200 active:scale-95"
+        >
+          <Send size={15} /> Message @{admin}
+        </a>
+      ) : (
+        <button
+          onClick={start}
+          disabled={pending === "task-listing"}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-sm text-gray-900 transition-transform duration-200 active:scale-95 disabled:opacity-60"
+        >
+          {pending === "task-listing" ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : (
+            <GramIcon size={15} />
+          )}
+          Pay {TASK_LISTING_GRAM} GRAM
+        </button>
+      )}
+    </section>
+  );
+}
+
 function TasksTab() {
   const { state, claimTask } = useGame();
+  const fetchTasks = useServerFn(listTasks);
+  const finish = useServerFn(completeTask);
+  const [tasks, setTasks] = useState<PublicTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [opened, setOpened] = useState<Record<string, boolean>>({});
+
+  const load = useCallback(async () => {
+    try {
+      const rows = await fetchTasks({ data: { playerKey: player().key } });
+      setTasks(rows);
+    } catch {
+      setTasks([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchTasks]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const act = async (t: PublicTask) => {
+    const p = player();
+    if (t.linkUrl && !opened[t.id]) {
+      const tg = telegram();
+      if (tg?.openTelegramLink && t.linkUrl.includes("t.me")) tg.openTelegramLink(t.linkUrl);
+      else window.open(t.linkUrl, "_blank");
+      setOpened((o) => ({ ...o, [t.id]: true }));
+      return;
+    }
+
+    setBusy(t.id);
+    try {
+      const res = await finish({
+        data: { playerKey: p.key, taskId: t.id, telegramId: p.id ?? undefined },
+      });
+      if (!res.ok) {
+        toast.error(res.error ?? "Could not verify this task");
+        return;
+      }
+      if (res.reward) claimTask(t.id, res.reward);
+      setTasks((list) => list.filter((x) => x.id !== t.id));
+      toast.success(`+${formatNumber(res.reward ?? 0)} MUSIC`);
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -171,16 +277,25 @@ function TasksTab() {
 
       <AdsSection />
 
-      {GROUPS.map((g, gi) => (
-        <section key={g.kind} className={`animate-fade-up space-y-2 delay-${gi + 2}`}>
-          <h2 className="px-1 text-sm text-foreground/70">{g.label}</h2>
-          {TASKS.filter((t) => t.kind === g.kind).map((t) => {
-            const done = state.claimedTasks.includes(t.id);
+      <section className="animate-fade-up delay-2 space-y-2">
+        <h2 className="px-1 text-sm text-foreground/70">Tasks</h2>
+
+        {loading ? (
+          <div className="liquid-glass flex items-center justify-center rounded-2xl py-8">
+            <Loader2 size={18} className="animate-spin text-foreground/50" />
+          </div>
+        ) : tasks.length === 0 ? (
+          <p className="liquid-glass rounded-2xl py-6 text-center text-[11px] text-foreground/50">
+            No tasks right now — new ones arrive regularly.
+          </p>
+        ) : (
+          tasks.map((t) => {
+            const needsCheck = Boolean(t.linkUrl) && opened[t.id];
             return (
               <div key={t.id} className="liquid-glass flex items-center gap-3 rounded-2xl p-3">
                 <img
-                  src={TASK_IMAGES[t.id] ?? dailyCheckin}
-                  alt={t.title}
+                  src={t.imageUrl ?? joinChannel}
+                  alt=""
                   width={112}
                   height={112}
                   loading="lazy"
@@ -188,28 +303,31 @@ function TasksTab() {
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm">{t.title}</p>
-                  <p className="text-[11px] text-foreground/60">+{formatNumber(t.reward)} MUSIC</p>
+                  <p className="text-[11px] text-foreground/60">
+                    +{formatNumber(t.reward)} MUSIC
+                  </p>
                 </div>
                 <button
-                  disabled={done}
-                  onClick={() => {
-                    if (t.url) window.open(t.url, "_blank");
-                    claimTask(t.id, t.reward);
-                    toast.success(`Claimed ${formatNumber(t.reward)} MUSIC`);
-                  }}
-                  className={`flex shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs transition-transform duration-200 active:scale-95 ${
-                    done ? "glass-thin text-foreground/50" : "bg-white text-gray-900"
-                  }`}
+                  disabled={busy === t.id}
+                  onClick={() => act(t)}
+                  className="flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-white px-4 py-2 text-xs text-gray-900 transition-transform duration-200 active:scale-95 disabled:opacity-60"
                 >
-                  {done ? <Check size={13} strokeWidth={2} /> : null}
-                  {done ? "Done" : (t.cta ?? "Claim")}
+                  {busy === t.id ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : needsCheck ? (
+                    <Check size={13} strokeWidth={2} />
+                  ) : (
+                    <ExternalLink size={13} strokeWidth={2} />
+                  )}
+                  {needsCheck ? "Check" : "Go"}
                 </button>
               </div>
-
             );
-          })}
-        </section>
-      ))}
+          })
+        )}
+      </section>
+
+      <AddTaskCard />
     </div>
   );
 }
