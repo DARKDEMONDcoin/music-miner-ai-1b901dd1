@@ -107,53 +107,56 @@ function Inner() {
         </button>
       </div>
 
-      <div className="flex items-center justify-center gap-2">
-        {AMOUNTS.map((a) => (
-          <button
-            key={a}
-            onClick={() => setAmount(a)}
-            className={`rounded-full px-3 py-1 text-[11px] transition-all duration-200 active:scale-95 ${
-              amount === a ? "bg-white text-gray-900" : "glass-thin text-foreground/60"
-            }`}
-          >
-            {a} GRAM
-          </button>
-        ))}
-      </div>
+      {depositOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="liquid-glass animate-fade-up w-full max-w-md rounded-3xl p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-sm">Deposit GRAM</p>
+              <button
+                onClick={() => setDepositOpen(false)}
+                className="rounded-full p-1 text-foreground/60"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <p className="mt-1 text-[11px] text-foreground/55">
+              Enter the amount — your wallet opens with the transaction ready.
+            </p>
+            <input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              inputMode="decimal"
+              placeholder="0.00"
+              autoFocus
+              className="glass-thin mt-4 w-full rounded-2xl p-4 text-center text-2xl tabular-nums outline-none placeholder:text-foreground/30 focus:ring-2 focus:ring-blue-700"
+            />
+            <button
+              onClick={deposit}
+              disabled={sending || !(Number(amount) > 0)}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 text-sm text-gray-900 transition-transform duration-200 active:scale-95 disabled:opacity-50"
+            >
+              {sending ? <Loader2 size={16} className="animate-spin" /> : null}
+              Confirm deposit
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-/**
- * Wallets fetch the manifest themselves, so it must live on a public host.
- * The editor preview origin is auth-gated — map it to the stable public one.
- */
-function publicOrigin() {
-  const { origin } = window.location;
-  return origin.replace(/^https:\/\/id-preview--([^.]+)\./, "https://project--$1-dev.");
-}
+/** Wallets fetch the manifest themselves, so it lives on the public domain. */
+const MANIFEST_URL = "https://music.megsyai.com/api/public/tonconnect-manifest";
 
 export default function WalletPanel() {
-  const [manifestUrl, setManifestUrl] = useState("");
-
-  useEffect(() => {
-    setManifestUrl(`${publicOrigin()}/api/public/tonconnect-manifest`);
-  }, []);
-
-  if (!manifestUrl) {
-    return (
-      <div className="flex justify-center py-3">
-        <Loader2 size={16} className="animate-spin text-foreground/50" />
-      </div>
-    );
-  }
-
   return (
     <TonConnectUIProvider
-      manifestUrl={manifestUrl}
-      actionsConfiguration={{ twaReturnUrl: "https://t.me/" }}
+      manifestUrl={MANIFEST_URL}
+      actionsConfiguration={{ twaReturnUrl: "https://t.me/Mosuclbot/App" }}
     >
       <Inner />
     </TonConnectUIProvider>
   );
 }
+
