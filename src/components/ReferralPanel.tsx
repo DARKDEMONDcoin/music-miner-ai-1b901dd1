@@ -1,7 +1,11 @@
 import { Copy, Send, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
-import { formatNumber } from "@/lib/game";
+import { VinylDisc } from "@/components/VinylDisc";
+import { formatNumber, REFERRAL_NFT_ID, REFERRAL_NFT_TARGET } from "@/lib/game";
+import { nftById } from "@/lib/nfts";
+
+const REWARD_NFT = nftById(REFERRAL_NFT_ID)!;
 
 const TIERS = [
   { label: "Friend joins", reward: 1000 },
