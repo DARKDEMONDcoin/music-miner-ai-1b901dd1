@@ -1,15 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { Check, Loader2, Lock, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
 import { useGramPay } from "@/hooks/useGramPay";
-import { StorePanel } from "@/components/StorePanel";
+
 import { VinylDisc } from "@/components/VinylDisc";
 import { CoinIcon, GramIcon, MusicIcon } from "@/components/CoinIcon";
 import { NFTS } from "@/lib/nfts";
 import { formatCrypto, formatNumber, nftDaily, REFERRAL_NFT_TARGET } from "@/lib/game";
 import { telegram } from "@/lib/payments";
+
+const StorePanel = lazy(() =>
+  import("@/components/StorePanel").then((m) => ({ default: m.StorePanel })),
+);
 
 export const Route = createFileRoute("/studio")({
   head: () => ({
@@ -51,7 +55,13 @@ function StudioPage() {
         ))}
       </div>
 
-      {tab === "nfts" ? <NftsTab /> : <StorePanel />}
+      {tab === "nfts" ? (
+        <NftsTab />
+      ) : (
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-white/5" />}>
+          <StorePanel />
+        </Suspense>
+      )}
     </div>
   );
 }
