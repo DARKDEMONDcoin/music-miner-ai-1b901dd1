@@ -133,7 +133,7 @@ function MinePage() {
               <p className="text-[10px] uppercase tracking-widest text-foreground/35">Your top NFT</p>
               <p className="mt-1 truncate text-base tracking-tight">{nft.name}</p>
               <p className="text-[11px] text-foreground/45">
-                {nft.artist} · {nft.album} · {nft.rarity}
+                {nft.artist} · {nft.album}
               </p>
             </div>
           </div>
