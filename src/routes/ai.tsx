@@ -195,7 +195,7 @@ function AiPage() {
         mood: composition.mood,
         coverUrl,
         audioUrl: audio,
-        audioKey,
+        ...(audioKey ? { audioKey } : {}),
         composition,
 
         bonusPct,
