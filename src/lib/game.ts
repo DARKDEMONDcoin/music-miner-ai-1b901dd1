@@ -261,9 +261,7 @@ export function activeTrack(s: GameState): Track | null {
 
 export function multiplier(s: GameState) {
   let m = 1;
-  const plan = activePlan(s);
-  if (plan) m *= plan.multiplier;
-  else if (s.premiumUntil > Date.now()) m *= 2;
+  if (s.premiumUntil > Date.now()) m *= 2;
   
   if (s.boosterUntil > Date.now()) m *= 3;
   const t = activeTrack(s);
@@ -277,8 +275,6 @@ export function ratePerHour(s: GameState) {
 }
 
 export function storageHours(s: GameState) {
-  const plan = activePlan(s);
-  if (plan) return plan.storageHours;
   return isPremium(s) ? PREMIUM_STORAGE_HOURS : BASE_STORAGE_HOURS;
 }
 
@@ -364,21 +360,17 @@ export function minerUpgradeCost(m: Miner, level: number) {
 /** Total upgrade levels across the whole studio — every upgrade feeds all three coins. */
 export function rigLevel(s: GameState) {
   const inst = INSTRUMENTS.reduce((sum, i) => sum + (s.levels[i.id] ?? 0), 0);
-  const plan = activePlan(s);
-  return inst + (s.bonusLevels ?? 0) + (plan?.power ?? 0);
+  return inst + (s.bonusLevels ?? 0);
 }
 
 export function minerUnlocked(s: GameState, id: MinerId) {
   if (s.minersUnlocked?.[id]) return true;
-  if (activePlan(s)?.unlocks.includes(id)) return true;
   return ownedNfts(s).some((n) => n.unlocks.includes(id));
 }
 
-/** Crypto boost from a subscription / booster, applied on top of NFT output. */
+/** Crypto boost from a temporary booster. Membership plans never touch mining. */
 export function cryptoBoost(s: GameState) {
-  const plan = activePlan(s);
-  const planBoost = plan ? 1 + (plan.multiplier - 1) * 0.25 : 1;
-  return planBoost * (s.boosterUntil > Date.now() ? 1.25 : 1);
+  return s.boosterUntil > Date.now() ? 1.25 : 1;
 }
 
 /** Coins this NFT alone produces per day, for the three record counters. */

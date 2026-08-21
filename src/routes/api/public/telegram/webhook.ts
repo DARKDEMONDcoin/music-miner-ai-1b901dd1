@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { MUSIC_BANNER_PATH } from "@/lib/brand";
 
 /** Telegram bot webhook: /start deep link + /101 admin panel. */
 export const Route = createFileRoute("/api/public/telegram/webhook")({
@@ -171,9 +172,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           }
 
           if (text.startsWith("/start")) {
-            await tg("sendMessage", {
+            await tg("sendPhoto", {
               chat_id: chatId,
-              text: "*Music AI*\n\nMine MUSIC, GRAM and USDT from your own AI studio.",
+              photo: `${APP_URL}${MUSIC_BANNER_PATH}`,
+              caption: "*Music AI*\n\nMine MUSIC, GRAM and USDT from your own AI studio.",
               parse_mode: "Markdown",
               reply_markup: {
                 inline_keyboard: [

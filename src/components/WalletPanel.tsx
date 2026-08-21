@@ -124,9 +124,21 @@ function Inner() {
   );
 }
 
+/**
+ * Wallets fetch the manifest themselves, so it must live on a public host.
+ * The editor preview origin is auth-gated — map it to the stable public one.
+ */
+function publicOrigin() {
+  const { origin } = window.location;
+  return origin.replace(/^https:\/\/id-preview--([^.]+)\./, "https://project--$1-dev.");
+}
+
 export default function WalletPanel() {
-  const manifestUrl =
-    typeof window === "undefined" ? "" : `${window.location.origin}/api/public/tonconnect-manifest`;
+  const [manifestUrl, setManifestUrl] = useState("");
+
+  useEffect(() => {
+    setManifestUrl(`${publicOrigin()}/api/public/tonconnect-manifest`);
+  }, []);
 
   if (!manifestUrl) {
     return (

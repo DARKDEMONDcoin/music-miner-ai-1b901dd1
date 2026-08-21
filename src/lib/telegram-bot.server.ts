@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { getPost, PLAN_LENGTH } from "@/lib/content-plan";
+import { BRAND_IMAGE_STYLE } from "@/lib/brand";
 
 export const APP_URL =
   process.env["MUSIC_APP_URL"] ??
-  "https://project--dab08494-fad3-4b74-b767-83fcf82ed4fb-dev.lovable.app";
+  "https://project--cabbd000-2e02-47bd-9490-cb3561f12ac2-dev.lovable.app";
 
 function token() {
   const t = process.env["MUSIC_TELEGRAM_BOT_TOKEN"];
@@ -76,7 +77,7 @@ async function cover(prompt: string): Promise<string | null> {
   if (!key) return null;
   try {
     const form = new FormData();
-    form.set("text", `${prompt}, album cover artwork, high detail`);
+    form.set("text", `${prompt}, ${BRAND_IMAGE_STYLE}`);
     const res = await fetch("https://api.deepai.org/api/text2img", {
       method: "POST",
       headers: { "api-key": key },

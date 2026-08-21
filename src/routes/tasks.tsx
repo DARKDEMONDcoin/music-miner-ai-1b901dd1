@@ -19,6 +19,8 @@ import {
   type PublicTask,
 } from "@/lib/tasks.functions";
 import joinChannel from "@/assets/tasks/join-channel.jpg";
+import { TelegramLogo } from "@/components/TelegramLogo";
+import { readCache, writeCache } from "@/lib/ui-cache";
 
 export const Route = createFileRoute("/tasks")({
   head: () => ({
@@ -214,8 +216,8 @@ function TasksTab() {
   const { state, claimTask } = useGame();
   const fetchTasks = useServerFn(listTasks);
   const finish = useServerFn(completeTask);
-  const [tasks, setTasks] = useState<PublicTask[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState<PublicTask[]>(() => readCache<PublicTask[]>("tasks") ?? []);
+  const [loading, setLoading] = useState(() => (readCache<PublicTask[]>("tasks") ? false : true));
   const [busy, setBusy] = useState<string | null>(null);
   const [opened, setOpened] = useState<Record<string, boolean>>({});
 
@@ -223,6 +225,7 @@ function TasksTab() {
     try {
       const rows = await fetchTasks({ data: { playerKey: player().key } });
       setTasks(rows);
+      writeCache("tasks", rows);
     } catch {
       setTasks([]);
     } finally {
@@ -293,14 +296,27 @@ function TasksTab() {
             const needsCheck = Boolean(t.linkUrl) && opened[t.id];
             return (
               <div key={t.id} className="liquid-glass flex items-center gap-3 rounded-2xl p-3">
-                <img
-                  src={t.imageUrl ?? joinChannel}
-                  alt=""
-                  width={112}
-                  height={112}
-                  loading="lazy"
-                  className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                />
+                {t.imageUrl ? (
+                  <img
+                    src={t.imageUrl}
+                    alt=""
+                    width={112}
+                    height={112}
+                    loading="lazy"
+                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                  />
+                ) : t.linkUrl?.includes("t.me") ? (
+                  <TelegramLogo size={40} />
+                ) : (
+                  <img
+                    src={joinChannel}
+                    alt=""
+                    width={112}
+                    height={112}
+                    loading="lazy"
+                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                  />
+                )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm">{t.title}</p>
                   <p className="text-[11px] text-foreground/60">

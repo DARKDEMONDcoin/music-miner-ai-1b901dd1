@@ -4,40 +4,47 @@ export type Plan = {
   id: PlanId;
   name: string;
   tagline: string;
-  multiplier: number; // multiplies every coin you mine
-  power: number; // hash power granted forever
-  aiTracks: number; // AI generations per day
-  storageHours: number; // mining cycle length
-  unlocks: ("gram" | "usdt")[];
+  /** AI songs the member can generate per day. */
+  aiTracks: number;
+  /** Everything the membership includes, in plain language. */
+  perks: string[];
   stars: number; // one-time Telegram Stars price
   gram: number; // one-time GRAM price
   highlight?: boolean;
   badge?: string;
 };
 
-/** One-time purchases. Every plan is a lifetime unlock — never a renewal. */
+/**
+ * Memberships are a creator pass — they unlock studio features.
+ * They never change mining: only Music NFTs mine coins.
+ */
 export const PLANS: Plan[] = [
   {
     id: "starter",
     name: "Starter",
-    tagline: "Switch on real GRAM mining",
-    multiplier: 2,
-    power: 3,
+    tagline: "For your first songs",
     aiTracks: 3,
-    storageHours: 12,
-    unlocks: ["gram"],
+    perks: [
+      "3 AI songs every day",
+      "Save your songs forever",
+      "No ads inside the studio",
+      "Starter badge on your profile",
+    ],
     stars: 250,
     gram: 1.2,
   },
   {
     id: "pro",
     name: "Pro",
-    tagline: "Both coins, triple output",
-    multiplier: 3,
-    power: 10,
+    tagline: "For everyday creators",
     aiTracks: 10,
-    storageHours: 24,
-    unlocks: ["gram", "usdt"],
+    perks: [
+      "10 AI songs every day",
+      "Voice-to-song with your own vocals",
+      "HD cover art for every track",
+      "Faster withdrawal review",
+      "Pro badge on your profile",
+    ],
     stars: 650,
     gram: 3.2,
     highlight: true,
@@ -46,12 +53,15 @@ export const PLANS: Plan[] = [
   {
     id: "elite",
     name: "Elite",
-    tagline: "Maximum mining power",
-    multiplier: 5,
-    power: 30,
+    tagline: "Everything, unlimited feel",
     aiTracks: 30,
-    storageHours: 48,
-    unlocks: ["gram", "usdt"],
+    perks: [
+      "30 AI songs every day",
+      "Longest tracks and studio-grade quality",
+      "Early access to every new NFT drop",
+      "Priority support from the team",
+      "Elite badge on your profile",
+    ],
     stars: 1500,
     gram: 7.4,
     badge: "Best value",

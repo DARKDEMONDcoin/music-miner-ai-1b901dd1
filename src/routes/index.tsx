@@ -15,10 +15,7 @@ import {
   minerPending,
   minerUnlocked,
   msLeft,
-  multiplier,
   pending,
-  ratePerHour,
-  rigLevel,
   storageHours,
 } from "@/lib/game";
 
@@ -65,20 +62,10 @@ function MinePage() {
     <div className="space-y-4">
       {/* Balance */}
       <section className="animate-fade-up pt-1 text-center">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-foreground/35">Balance</p>
-        <p className="mt-1 flex items-center justify-center gap-2 text-[2.6rem] leading-none tracking-tight">
+        <p className="flex items-center justify-center gap-2 text-[2.6rem] leading-none tracking-tight">
           <MusicIcon size={30} />
           {formatNumber(state.balance)}
         </p>
-        <div className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-foreground/60">
-          <span className="glass-thin rounded-full px-2.5 py-1">
-            {formatNumber(ratePerHour(state))} / hr
-          </span>
-          <span className="glass-thin rounded-full px-2.5 py-1">
-            {multiplier(state).toFixed(2)}x
-          </span>
-          <span className="glass-thin rounded-full px-2.5 py-1">Power {rigLevel(state)}</span>
-        </div>
       </section>
 
       {/* Mining cycle */}
@@ -146,7 +133,7 @@ function MinePage() {
               <p className="text-[10px] uppercase tracking-widest text-foreground/35">Your top NFT</p>
               <p className="mt-1 truncate text-base tracking-tight">{nft.name}</p>
               <p className="text-[11px] text-foreground/45">
-                {nft.artist} · {nft.album} · {nft.rarity}
+                {nft.artist} · {nft.album}
               </p>
             </div>
           </div>

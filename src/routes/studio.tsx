@@ -117,12 +117,7 @@ function NftsTab() {
             <div className="flex items-center gap-4 p-4">
               <VinylDisc src={nft.audioUrl} cover={nft.coverUrl} title={nft.name} tone={nft.tone} size={104} />
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="truncate text-base tracking-tight">{nft.name}</p>
-                  <span className="shrink-0 rounded-full bg-white/12 px-2 py-0.5 text-[9px] uppercase tracking-wider text-foreground/70">
-                    {nft.rarity}
-                  </span>
-                </div>
+                <p className="truncate text-base tracking-tight">{nft.name}</p>
                 <p className="mt-0.5 text-[11px] text-foreground/45">{nft.artist}</p>
                 <p className="mt-2 text-[11px] leading-relaxed text-foreground/60">{nft.desc}</p>
               </div>

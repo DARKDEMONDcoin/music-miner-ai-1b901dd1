@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { Loader2, Pause, Play } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Loader2, Music2, Pause, Play } from "lucide-react";
+import { registerPlayer, stopOthers } from "@/lib/audio-bus";
 
 type Props = {
   /** Direct audio URL of the record. */
@@ -16,7 +17,22 @@ type Props = {
 export function VinylDisc({ src, cover, title, tone, size = 132, label }: Props) {
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [artFailed, setArtFailed] = useState(false);
   const audio = useRef<HTMLAudioElement | null>(null);
+
+  const stop = useCallback(() => {
+    audio.current?.pause();
+    setPlaying(false);
+    setLoading(false);
+  }, []);
+
+  /* One record at a time across the whole app. */
+  useEffect(() => {
+    const unregister = registerPlayer(stop);
+    return () => {
+      unregister();
+    };
+  }, [stop]);
 
   useEffect(
     () => () => {
@@ -29,23 +45,32 @@ export function VinylDisc({ src, cover, title, tone, size = 132, label }: Props)
   const toggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (playing) {
-      audio.current?.pause();
-      setPlaying(false);
+    if (playing || loading) {
+      stop();
       return;
     }
+
+    stopOthers(stop);
+
     if (!audio.current) {
-      const el = new Audio(src);
+      const el = new Audio();
       el.crossOrigin = "anonymous";
-      el.preload = "none";
+      el.preload = "metadata";
+      el.src = src;
       el.addEventListener("ended", () => setPlaying(false));
       el.addEventListener("pause", () => setPlaying(false));
+      el.addEventListener("waiting", () => setLoading(true));
       el.addEventListener("playing", () => {
         setLoading(false);
         setPlaying(true);
       });
+      el.addEventListener("error", () => {
+        setLoading(false);
+        setPlaying(false);
+      });
       audio.current = el;
     }
+
     setLoading(true);
     try {
       await audio.current.play();
@@ -71,16 +96,19 @@ export function VinylDisc({ src, cover, title, tone, size = 132, label }: Props)
         <span className="absolute inset-[18%] rounded-full border border-white/10" />
         <span className="absolute inset-[28%] rounded-full border border-white/10" />
         <span
-          className={`absolute inset-[32%] overflow-hidden rounded-full bg-gradient-to-br ${tone} ring-1 ring-white/20`}
+          className={`absolute inset-[32%] flex items-center justify-center overflow-hidden rounded-full bg-gradient-to-br ${tone} ring-1 ring-white/20`}
         >
-          {cover ? (
+          {cover && !artFailed ? (
             <img
               src={cover}
               alt=""
               loading="lazy"
+              onError={() => setArtFailed(true)}
               className="h-full w-full rounded-full object-cover opacity-90"
             />
-          ) : null}
+          ) : (
+            <Music2 size={Math.round(size * 0.14)} className="text-white/70" />
+          )}
         </span>
         <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-background" />
       </span>
