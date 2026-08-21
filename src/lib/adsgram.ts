@@ -1,7 +1,17 @@
 /** Minimal Adsgram (sad.adsgram.ai) rewarded-ad integration. */
 
-export const ADSGRAM_BLOCK_ID =
-  (import.meta.env["VITE_ADSGRAM_BLOCK_ID"] as string | undefined) ?? "int-14003";
+let blockId = (import.meta.env["VITE_ADSGRAM_BLOCK_ID"] as string | undefined) ?? "int-14003";
+
+async function resolveBlockId() {
+  try {
+    const res = await fetch("/api/public/config");
+    const data = (await res.json()) as { adsgramBlockId?: string };
+    if (data.adsgramBlockId) blockId = data.adsgramBlockId;
+  } catch {
+    /* keep the fallback */
+  }
+  return blockId;
+}
 
 type AdController = {
   show: () => Promise<{ done?: boolean; description?: string }>;
@@ -35,7 +45,7 @@ export async function showRewardedAd(): Promise<boolean> {
   await loadScript();
   const sdk = (window as unknown as { Adsgram?: AdsgramGlobal }).Adsgram;
   if (!sdk) throw new Error("Adsgram is unavailable");
-  controller ??= sdk.init({ blockId: ADSGRAM_BLOCK_ID });
+  controller ??= sdk.init({ blockId: await resolveBlockId() });
   const result = await controller.show();
   return result?.done !== false;
 }
