@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
 import { TrackPlayer, type Composition } from "@/lib/synth";
 import { activePlan, type Track } from "@/lib/game";
+import { loadTrackAudio, saveTrackAudio } from "@/lib/track-audio";
 
 export const Route = createFileRoute("/ai")({
   head: () => ({
@@ -34,6 +35,7 @@ function AiPage() {
   const [step, setStep] = useState("");
   const [comp, setComp] = useState<Composition | null>(null);
   const [cover, setCover] = useState<string | null>(null);
+  const [generatedAudio, setGeneratedAudio] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const playerRef = useRef<TrackPlayer | null>(null);
 
@@ -41,9 +43,11 @@ function AiPage() {
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const voiceElRef = useRef<HTMLAudioElement | null>(null);
+  const generatedAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const plan = activePlan(state);
   const todayCount = state.tracks.filter(
@@ -62,6 +66,7 @@ function AiPage() {
     return () => {
       playerRef.current?.stop();
       voiceElRef.current?.pause();
+      generatedAudioRef.current?.pause();
     };
   }, []);
 
@@ -73,6 +78,7 @@ function AiPage() {
       rec.ondataavailable = (e) => chunksRef.current.push(e.data);
       rec.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        setVoiceBlob(blob);
         setVoiceUrl((old) => {
           if (old) URL.revokeObjectURL(old);
           return URL.createObjectURL(blob);
@@ -121,6 +127,10 @@ function AiPage() {
     setLoading(true);
     setComp(null);
     setCover(null);
+    setGeneratedAudio((old) => {
+      if (old) URL.revokeObjectURL(old);
+      return null;
+    });
     try {
       setStep(mode === "voice" ? "Building your backing track..." : "Composing...");
       const res = await fetch("/api/ai/compose", {
@@ -147,11 +157,13 @@ function AiPage() {
       } catch {
         /* cover is optional */
       }
+      if (!coverUrl) coverUrl = "/__l5e/assets-v1/4b203ba1-e278-4fcf-8e36-8059bed12db7/music-banner.png";
       setCover(coverUrl);
 
       /* Sing the generated lyrics when the user did not record their own take. */
       let audio = voiceUrl;
-      const lyrics = (composition as Composition & { lyrics?: string[] }).lyrics;
+      let audioBlob = voiceBlob;
+      const lyrics = composition.lyrics;
       if (!audio && lyrics && lyrics.length > 0) {
         setStep("Recording the vocals...");
         try {
@@ -160,20 +172,31 @@ function AiPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ lyrics, mood: composition.mood }),
           });
-          if (vocalRes.ok) audio = URL.createObjectURL(await vocalRes.blob());
+          if (!vocalRes.ok) {
+            const error = (await vocalRes.json().catch(() => ({}))) as { error?: string };
+            throw new Error(error.error ?? "Vocal generation failed");
+          }
+          audioBlob = await vocalRes.blob();
+          audio = URL.createObjectURL(audioBlob);
+          setGeneratedAudio(audio);
         } catch {
           /* vocals are optional */
         }
       }
 
       const bonusPct = 10 + Math.floor(Math.random() * 26);
+      const trackId = String(Date.now());
+      const audioKey = audioBlob ? `track-${trackId}` : undefined;
+      if (audioBlob && audioKey) await saveTrackAudio(audioKey, audioBlob);
       const track: Track = {
-        id: String(Date.now()),
+        id: trackId,
         title: composition.title,
         genre: composition.genre,
         mood: composition.mood,
         coverUrl,
         audioUrl: audio,
+        ...(audioKey ? { audioKey } : {}),
+        composition,
 
         bonusPct,
         createdAt: Date.now(),
@@ -195,14 +218,16 @@ function AiPage() {
     if (playing) {
       playerRef.current?.stop();
       voiceElRef.current?.pause();
+      generatedAudioRef.current?.pause();
       setPlaying(false);
       return;
     }
     playerRef.current = new TrackPlayer();
     setPlaying(true);
-    if (mode === "voice" && voiceUrl && voiceElRef.current) {
-      voiceElRef.current.currentTime = 0;
-      void voiceElRef.current.play().catch(() => undefined);
+    const vocalElement = generatedAudio ? generatedAudioRef.current : voiceElRef.current;
+    if (vocalElement) {
+      vocalElement.currentTime = 0;
+      void vocalElement.play().catch(() => undefined);
     }
     await playerRef.current.play(comp, () => setPlaying(false));
   }
@@ -284,6 +309,7 @@ function AiPage() {
                   onClick={() => {
                     URL.revokeObjectURL(voiceUrl);
                     setVoiceUrl(null);
+                    setVoiceBlob(null);
                     setSeconds(0);
                   }}
                   className="shrink-0 rounded-xl p-2 text-foreground/60 transition-transform active:scale-95"
@@ -334,6 +360,9 @@ function AiPage() {
 
       {comp && (
         <section className="liquid-glass animate-fade-up overflow-hidden rounded-3xl">
+          {generatedAudio ? (
+            <audio ref={generatedAudioRef} src={generatedAudio} preload="auto" />
+          ) : null}
           <div
             className="aspect-square w-full bg-blue-700 bg-cover bg-center"
             style={cover ? { backgroundImage: `url(${cover})` } : undefined}
@@ -358,7 +387,7 @@ function AiPage() {
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-700 py-3 text-sm transition-transform duration-200 active:scale-95"
             >
               {playing ? <Square size={14} strokeWidth={2} /> : <Play size={14} strokeWidth={2} />}
-              {playing ? "Stop" : mode === "voice" && voiceUrl ? "Play my song" : "Play track"}
+              {playing ? "Stop" : generatedAudio || voiceUrl ? "Play my song" : "Play track"}
             </button>
           </div>
         </section>
@@ -367,28 +396,76 @@ function AiPage() {
       {state.tracks.length > 0 && (
         <section className="space-y-2">
           <h2 className="px-1 text-xs uppercase tracking-widest text-foreground/40">Your library</h2>
-          {state.tracks.map((t) => (
-            <div key={t.id} className="liquid-glass flex items-center gap-3 rounded-2xl p-3">
-              <div
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-700 bg-cover bg-center"
-                style={t.coverUrl ? { backgroundImage: `url(${t.coverUrl})` } : undefined}
-              >
-                {t.coverUrl ? null : <Music2 size={16} />}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm">{t.title}</p>
-                <p className="text-[11px] text-foreground/60">
-                  {t.genre} · +{t.bonusPct}% bonus
-                </p>
-              </div>
-              <span className="text-[11px] text-foreground/60">
-                {t.expiresAt > Date.now() ? "Active" : "Expired"}
-              </span>
-            </div>
-          ))}
+          {state.tracks.map((t) => <SavedTrack key={t.id} track={t} />)}
         </section>
       )}
 
+    </div>
+  );
+}
+
+function SavedTrack({ track }: { track: Track }) {
+  const [audioUrl, setAudioUrl] = useState(track.audioUrl);
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playerRef = useRef<TrackPlayer | null>(null);
+
+  useEffect(() => {
+    if (!track.audioKey || (track.audioUrl && !track.audioUrl.startsWith("blob:"))) return;
+    let objectUrl: string | null = null;
+    void loadTrackAudio(track.audioKey).then((blob) => {
+      if (!blob) return;
+      objectUrl = URL.createObjectURL(blob);
+      setAudioUrl(objectUrl);
+    });
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      playerRef.current?.stop();
+    };
+  }, [track.audioKey, track.audioUrl]);
+
+  async function toggle() {
+    if (playing) {
+      audioRef.current?.pause();
+      playerRef.current?.stop();
+      setPlaying(false);
+      return;
+    }
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      await audioRef.current.play().catch(() => undefined);
+    }
+    if (track.composition) {
+      playerRef.current = new TrackPlayer();
+      void playerRef.current.play(
+        { title: track.title, genre: track.genre, mood: track.mood, ...track.composition },
+        () => setPlaying(false),
+      );
+    }
+    setPlaying(true);
+  }
+
+  return (
+    <div className="liquid-glass flex items-center gap-3 rounded-2xl p-3">
+      {audioUrl ? <audio ref={audioRef} src={audioUrl} preload="metadata" /> : null}
+      <div
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-700 bg-cover bg-center"
+        style={track.coverUrl ? { backgroundImage: `url(${track.coverUrl})` } : undefined}
+      >
+        {track.coverUrl ? null : <Music2 size={16} />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm">{track.title}</p>
+        <p className="text-[11px] text-foreground/60">{track.genre} · +{track.bonusPct}% bonus</p>
+      </div>
+      <button
+        onClick={toggle}
+        disabled={!audioUrl && !track.composition}
+        className="glass-thin flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 disabled:opacity-40"
+        aria-label={playing ? `Stop ${track.title}` : `Play ${track.title}`}
+      >
+        {playing ? <Square size={14} /> : <Play size={14} />}
+      </button>
     </div>
   );
 }

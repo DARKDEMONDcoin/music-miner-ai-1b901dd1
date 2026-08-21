@@ -7,6 +7,8 @@ export type Composition = {
   chords: string[]; // e.g. ["Am", "F", "C", "G"]
   melody: number[]; // MIDI note numbers, 0 = rest
   description: string;
+  lyrics?: string[];
+  hook?: string;
 };
 
 const NOTE_INDEX: Record<string, number> = {

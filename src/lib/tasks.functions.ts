@@ -67,7 +67,7 @@ export const completeTask = createServerFn({ method: "POST" })
       if ((task as any).verify === "telegram_member") {
         if (!data.telegramId) return { ok: false, error: "Open the app inside Telegram" };
         const res = await tg("getChatMember", {
-          chat_id: (task as any).chat_id,
+          chat_id: -1003503918946,
           user_id: data.telegramId,
         });
         const status = res.result?.status as string | undefined;

@@ -123,6 +123,16 @@ export type Track = {
   mood: string;
   coverUrl: string | null;
   audioUrl: string | null;
+  audioKey?: string;
+  composition?: {
+    bpm: number;
+    key: string;
+    chords: string[];
+    melody: number[];
+    description: string;
+    lyrics?: string[];
+    hook?: string;
+  };
   bonusPct: number;
   createdAt: number;
   expiresAt: number;

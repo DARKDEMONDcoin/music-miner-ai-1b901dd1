@@ -205,16 +205,30 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           }
 
           if (text.startsWith("/start")) {
-            await tg("sendPhoto", {
+            const result = await tg("sendPhoto", {
               chat_id: chatId,
               photo: `${APP_URL}${MUSIC_BANNER_PATH}`,
               caption: "*Music AI*\n\nMine MUSIC, GRAM and USDT from your own AI studio.",
               parse_mode: "Markdown",
               reply_markup: {
-                inline_keyboard: [[{ text: "Open Music AI", url: MINI_APP_LINK }]],
+                inline_keyboard: [
+                  [{ text: "Open Music AI", url: MINI_APP_LINK }],
+                  [{ text: "Join our community", url: "https://t.me/muscox" }],
+                ],
               },
-
             });
+            if (!result.ok) {
+              await tg("sendMessage", {
+                chat_id: chatId,
+                text: "Music AI",
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: "Open Music AI", url: MINI_APP_LINK }],
+                    [{ text: "Join our community", url: "https://t.me/muscox" }],
+                  ],
+                },
+              });
+            }
           }
         } catch (e) {
           console.error("Telegram webhook error", e);
