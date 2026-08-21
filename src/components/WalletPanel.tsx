@@ -96,16 +96,12 @@ function Inner() {
 
       <div className="grid grid-cols-2 gap-2">
         <button
-          onClick={deposit}
-          disabled={sending}
-          className="flex items-center justify-center gap-2 rounded-2xl bg-white py-3 text-sm text-gray-900 transition-transform duration-200 active:scale-95 disabled:opacity-60"
+          onClick={() => setDepositOpen(true)}
+          className="flex items-center justify-center gap-2 rounded-2xl bg-white py-3 text-sm text-gray-900 transition-transform duration-200 active:scale-95"
         >
-          {sending ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <ArrowDownLeft size={16} strokeWidth={2} />
-          )}
+          <ArrowDownLeft size={16} strokeWidth={2} />
           Deposit
+
         </button>
         <button
           onClick={onWithdraw}
