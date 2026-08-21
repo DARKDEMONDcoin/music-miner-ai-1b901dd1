@@ -365,7 +365,7 @@ export function minerUpgradeCost(m: Miner, level: number) {
 export function rigLevel(s: GameState) {
   const inst = INSTRUMENTS.reduce((sum, i) => sum + (s.levels[i.id] ?? 0), 0);
   const plan = activePlan(s);
-  return inst + (s.bonusLevels ?? 0) + nftPower(s) + (plan?.power ?? 0);
+  return inst + (s.bonusLevels ?? 0) + (plan?.power ?? 0);
 }
 
 export function minerUnlocked(s: GameState, id: MinerId) {
@@ -374,24 +374,28 @@ export function minerUnlocked(s: GameState, id: MinerId) {
   return ownedNfts(s).some((n) => n.unlocks.includes(id));
 }
 
-/** Coins this NFT alone adds per day, for the three studio counters. */
+/** Crypto boost from a subscription / booster, applied on top of NFT output. */
+export function cryptoBoost(s: GameState) {
+  const plan = activePlan(s);
+  const planBoost = plan ? 1 + (plan.multiplier - 1) * 0.25 : 1;
+  return planBoost * (s.boosterUntil > Date.now() ? 1.25 : 1);
+}
+
+/** Coins this NFT alone produces per day, for the three record counters. */
 export function nftDaily(s: GameState, nftId: string) {
-  const has = (s.nfts ?? []).includes(nftId);
-  const base: GameState = has ? s : { ...s, nfts: [...(s.nfts ?? []), nftId] };
-  const without: GameState = { ...s, nfts: (s.nfts ?? []).filter((n) => n !== nftId) };
-  const d = (fn: (x: GameState) => number) => Math.max(0, fn(base) - fn(without)) * 24;
+  const n = nftById(nftId);
+  if (!n) return { music: 0, gram: 0, usdt: 0 };
+  const boost = cryptoBoost(s);
   return {
-    music: d((x) => ratePerHour(x)),
-    gram: d((x) => minerRate(x, MINERS[0]!)),
-    usdt: d((x) => minerRate(x, MINERS[1]!)),
+    music: n.musicPerDay * multiplier(s),
+    gram: n.gramPerDay * boost,
+    usdt: n.usdtPerDay * boost,
   };
 }
 
 export function minerRate(s: GameState, m: Miner) {
-  const level = rigLevel(s);
-  if (level <= 0 || !minerUnlocked(s, m.id)) return 0;
-  const raw = m.baseRate * level;
-  return raw * (isPremium(s) ? 2 : 1) * (s.boosterUntil > Date.now() ? 1.5 : 1);
+  if (!minerUnlocked(s, m.id)) return 0;
+  return nftCryptoPerHour(s, m.id) * cryptoBoost(s);
 }
 
 export function minerPending(s: GameState, m: Miner, now = Date.now()) {
