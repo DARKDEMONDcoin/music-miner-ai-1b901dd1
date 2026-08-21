@@ -192,6 +192,29 @@
   }
 }
 
+@keyframes spin-vinyl {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@utility animate-spin-vinyl {
+  animation: spin-vinyl 3.6s linear infinite;
+}
+
+/* iOS-style tab bar: soft pill highlight that springs between items. */
+@utility tab-pill {
+  transition:
+    transform 0.42s cubic-bezier(0.34, 1.4, 0.5, 1),
+    opacity 0.25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin-vinyl {
+    animation: none;
+  }
+}
+
 /* Space under the Telegram header controls (close / menu / back). */
 @utility tg-safe-top {
   height: calc(
