@@ -54,9 +54,22 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             } else if (action === "ap:now") {
               const r = await publishNext();
               note = r.ok ? "Posted to the channel" : `Failed: ${r.error}`;
+            } else if (action === "ap:key" || action === "ap:newtask") {
+              const { setDraft } = await import("@/lib/task-admin.server");
+              await setDraft(from!, { step: action === "ap:key" ? "deepai" : "title" });
+              await tg("sendMessage", {
+                chat_id: cb.message?.chat?.id,
+                text:
+                  action === "ap:key"
+                    ? "Send the new *DeepAI API key*. Send /cancel to stop."
+                    : "New task 1/4\n\nSend the task *name*.",
+                parse_mode: "Markdown",
+              });
+              await tg("answerCallbackQuery", { callback_query_id: cb.id });
+              return Response.json({ ok: true });
             }
 
-            const panel = adminPanel(await getState());
+            const panel = adminPanel(await getState(), await getStats());
             await tg("answerCallbackQuery", { callback_query_id: cb.id, text: note });
             await tg("editMessageText", {
               chat_id: cb.message?.chat?.id,
@@ -66,6 +79,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               reply_markup: panel.reply_markup,
             });
             return Response.json({ ok: true });
+
           }
 
           const msg = update.message;
