@@ -1,30 +1,58 @@
 import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { toast } from "sonner";
-import { makeMemo, openExternal, telegram, tonkeeperLink } from "@/lib/payments";
+import { TON_WALLET, commentPayload, makeMemo, telegram } from "@/lib/payments";
 import { verifyTonPayment } from "@/lib/ton.functions";
 
 /**
- * Opens a GRAM transfer in the user's wallet and polls the chain until the
- * transfer with our memo shows up, then runs `onPaid`.
+ * One-tap GRAM payment: TON Connect signs the transfer in the connected wallet
+ * (no manual link, no typed comment), then we confirm it on-chain.
  */
 export function useGramPay() {
   const verify = useServerFn(verifyTonPayment);
+  const [tonConnectUI] = useTonConnectUI();
+  const address = useTonAddress();
   const [pending, setPending] = useState<string | null>(null);
   const cancelled = useRef(false);
 
   const pay = async (key: string, amount: number, label: string, onPaid: () => void) => {
+    if (!address) {
+      toast("Connect your TON wallet first", { description: "Opening the wallet list…" });
+      try {
+        await tonConnectUI.openModal();
+      } catch {
+        /* user closed it */
+      }
+      return;
+    }
+
     const memo = makeMemo("coins");
-    openExternal(tonkeeperLink(amount, memo));
     setPending(key);
     cancelled.current = false;
-    toast("Waiting for your GRAM transfer", {
-      description: `Send ${amount} GRAM with comment ${memo}`,
-    });
+
+    try {
+      await tonConnectUI.sendTransaction({
+        validUntil: Math.floor(Date.now() / 1000) + 300,
+        messages: [
+          {
+            address: TON_WALLET,
+            amount: String(Math.round(amount * 1e9)),
+            payload: commentPayload(memo),
+          },
+        ],
+      });
+    } catch {
+      setPending(null);
+      toast("Payment cancelled");
+      return;
+    }
+
+    toast("Confirming on the blockchain", { description: `${amount} GRAM · ${label}` });
 
     for (let i = 0; i < 40; i++) {
       if (cancelled.current) break;
-      await new Promise((r) => setTimeout(r, 6000));
+      await new Promise((r) => setTimeout(r, 4000));
       try {
         const res = await verify({ data: { memo, minTon: amount } });
         if (res.paid) {
@@ -39,8 +67,8 @@ export function useGramPay() {
       }
     }
     setPending(null);
-    toast("Payment not detected yet", {
-      description: "If you already sent it, reopen this page in a minute.",
+    toast("Still confirming", {
+      description: "The transfer was signed — it will unlock as soon as the chain confirms it.",
     });
   };
 

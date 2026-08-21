@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  TonConnectUIProvider,
-  useTonAddress,
-  useTonConnectUI,
-} from "@tonconnect/ui-react";
+import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { ArrowDownLeft, ArrowUpRight, Loader2, LogOut, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
 import { useGame } from "@/hooks/useGame";
@@ -150,18 +146,7 @@ function Inner() {
   );
 }
 
-/** Wallets fetch the manifest themselves, so it must be publicly reachable. */
-const MANIFEST_URL =
-  "https://project--cabbd000-2e02-47bd-9490-cb3561f12ac2-dev.lovable.app/api/public/tonconnect-manifest";
-
 export default function WalletPanel() {
-  return (
-    <TonConnectUIProvider
-      manifestUrl={MANIFEST_URL}
-      actionsConfiguration={{ twaReturnUrl: "https://t.me/Mosuclbot/App" }}
-    >
-      <Inner />
-    </TonConnectUIProvider>
-  );
+  return <Inner />;
 }
 
