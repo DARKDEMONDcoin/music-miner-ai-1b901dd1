@@ -16,11 +16,44 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const router = useRouter();
 
-  /* Telegram chrome: expand the viewport and wire the native Back button. */
+  /* Telegram chrome: full screen + safe-area vars + native Back button. */
   useEffect(() => {
     const tg = telegram();
-    tg?.ready?.();
-    tg?.expand?.();
+    if (!tg) return;
+    const safe = (fn?: () => void) => {
+      try {
+        fn?.();
+      } catch {
+        /* older Telegram clients don't support every method */
+      }
+    };
+    safe(() => tg.ready?.());
+    safe(() => tg.expand?.());
+    safe(() => tg.requestFullscreen?.());
+    safe(() => tg.disableVerticalSwipes?.());
+    safe(() => tg.setHeaderColor?.("#000000"));
+    safe(() => tg.setBackgroundColor?.("#000000"));
+
+    const syncInsets = () => {
+      const root = document.documentElement;
+      const top = tg.safeAreaInset?.top ?? 0;
+      const contentTop = tg.contentSafeAreaInset?.top ?? 0;
+      const bottom = tg.safeAreaInset?.bottom ?? 0;
+      root.style.setProperty("--tg-safe-area-inset-top", `${top}px`);
+      root.style.setProperty("--tg-content-safe-area-inset-top", `${contentTop}px`);
+      root.style.setProperty("--tg-safe-area-inset-bottom", `${bottom}px`);
+    };
+    syncInsets();
+    tg.onEvent?.("safeAreaChanged", syncInsets);
+    tg.onEvent?.("contentSafeAreaChanged", syncInsets);
+    tg.onEvent?.("fullscreenChanged", syncInsets);
+    tg.onEvent?.("viewportChanged", syncInsets);
+    return () => {
+      tg.offEvent?.("safeAreaChanged", syncInsets);
+      tg.offEvent?.("contentSafeAreaChanged", syncInsets);
+      tg.offEvent?.("fullscreenChanged", syncInsets);
+      tg.offEvent?.("viewportChanged", syncInsets);
+    };
   }, []);
 
   useEffect(() => {
@@ -57,7 +90,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           {children}
         </main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-4">
+        <nav
+          className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4"
+          style={{
+            paddingBottom:
+              "calc(1rem + var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))",
+          }}
+        >
           <div className="liquid-glass relative flex items-center rounded-[26px] p-1.5">
             {/* Sliding iOS-style highlight */}
             <span

@@ -171,8 +171,16 @@ type TelegramWebApp = {
   };
   ready?: () => void;
   expand?: () => void;
-  safeAreaInset?: { top?: number };
-  contentSafeAreaInset?: { top?: number };
+  requestFullscreen?: () => void;
+  exitFullscreen?: () => void;
+  isFullscreen?: boolean;
+  disableVerticalSwipes?: () => void;
+  setHeaderColor?: (color: string) => void;
+  setBackgroundColor?: (color: string) => void;
+  onEvent?: (event: string, cb: () => void) => void;
+  offEvent?: (event: string, cb: () => void) => void;
+  safeAreaInset?: { top?: number; bottom?: number };
+  contentSafeAreaInset?: { top?: number; bottom?: number };
 };
 
 export function telegram(): TelegramWebApp | null {
