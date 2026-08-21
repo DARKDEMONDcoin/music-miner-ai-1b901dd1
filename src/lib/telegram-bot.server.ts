@@ -163,7 +163,7 @@ export async function getStats(): Promise<AdminStats> {
   const [tasksDone, activeTasks, paidRequests, keysActive, keysTotal] = await Promise.all([
     count("music_task_completions"),
     count("music_tasks", (q) => q.eq("is_active", true)),
-    count("music_task_requests", (q) => q.eq("paid", true)),
+    count("music_task_requests", (q) => q.eq("status", "paid")),
     count("music_deepai_keys", (q) => q.eq("active", true)),
     count("music_deepai_keys"),
   ]);
