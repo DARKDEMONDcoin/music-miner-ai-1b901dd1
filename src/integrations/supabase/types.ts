@@ -7034,6 +7034,122 @@ export type Database = {
         }
         Relationships: []
       }
+      music_task_completions: {
+        Row: {
+          created_at: string
+          id: string
+          player_key: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          player_key: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          player_key?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "music_task_completions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "music_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      music_task_drafts: {
+        Row: {
+          draft: Json
+          telegram_id: number
+          updated_at: string
+        }
+        Insert: {
+          draft?: Json
+          telegram_id: number
+          updated_at?: string
+        }
+        Update: {
+          draft?: Json
+          telegram_id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      music_task_requests: {
+        Row: {
+          amount_gram: number
+          created_at: string
+          id: string
+          player_key: string
+          status: string
+          tg_username: string | null
+          tx_hash: string | null
+        }
+        Insert: {
+          amount_gram?: number
+          created_at?: string
+          id?: string
+          player_key: string
+          status?: string
+          tg_username?: string | null
+          tx_hash?: string | null
+        }
+        Update: {
+          amount_gram?: number
+          created_at?: string
+          id?: string
+          player_key?: string
+          status?: string
+          tg_username?: string | null
+          tx_hash?: string | null
+        }
+        Relationships: []
+      }
+      music_tasks: {
+        Row: {
+          chat_id: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          link_url: string | null
+          reward: number
+          sort_order: number
+          title: string
+          verify: string
+        }
+        Insert: {
+          chat_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          reward?: number
+          sort_order?: number
+          title: string
+          verify?: string
+        }
+        Update: {
+          chat_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link_url?: string | null
+          reward?: number
+          sort_order?: number
+          title?: string
+          verify?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           app_credits: boolean
