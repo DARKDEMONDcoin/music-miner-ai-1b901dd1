@@ -64,7 +64,7 @@ function WalletPage() {
                     `${formatCrypto(minerRate(state, m))} ${m.symbol} / hr`
                   ) : (
                     <>
-                      <Lock size={10} /> Unlocks with a plan or NFT
+                      <Lock size={10} /> Unlocks with a Music NFT
                     </>
                   )}
                 </p>
