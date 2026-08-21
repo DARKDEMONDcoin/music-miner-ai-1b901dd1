@@ -16,6 +16,7 @@ const TIERS = [
 export function ReferralPanel() {
   const { state } = useGame();
   const link = `https://t.me/Mosuclbot?start=${state.refCode}`;
+  const owned = (state.nfts ?? []).includes(REFERRAL_NFT_ID);
 
   return (
     <div className="space-y-3">
