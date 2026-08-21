@@ -27,7 +27,12 @@ export function VinylDisc({ src, cover, title, tone, size = 132, label }: Props)
   }, []);
 
   /* One record at a time across the whole app. */
-  useEffect(() => registerPlayer(stop), [stop]);
+  useEffect(() => {
+    const unregister = registerPlayer(stop);
+    return () => {
+      unregister();
+    };
+  }, [stop]);
 
   useEffect(
     () => () => {
