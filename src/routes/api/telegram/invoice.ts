@@ -40,8 +40,8 @@ export const Route = createFileRoute("/api/telegram/invoice")({
           const plan = PLANS.find((p) => p.id === body.planId);
           if (plan) {
             item = {
-              title: `${plan.name} plan — lifetime`,
-              desc: `x${plan.multiplier} mining forever, +${plan.power} power, ${plan.aiTracks} AI songs a day`,
+              title: `${plan.name} membership — lifetime`,
+              desc: `${plan.aiTracks} AI songs a day, ${plan.perks.length} studio perks, forever`,
               stars: plan.stars,
             };
           }
