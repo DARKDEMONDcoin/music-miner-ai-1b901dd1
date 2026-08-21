@@ -1,7 +1,7 @@
 import { db } from "@/lib/telegram-bot.server";
 
 export type TaskDraft = {
-  step?: "title" | "image" | "link" | "reward";
+  step?: "title" | "image" | "link" | "reward" | "deepai";
   title?: string;
   imageUrl?: string | null;
   linkUrl?: string | null;
