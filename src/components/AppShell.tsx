@@ -1,5 +1,5 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
-import { CircleCheckBig, Disc3, Gem, Sparkles, Wallet } from "lucide-react";
+import { AudioLines, CircleCheckBig, Disc3, Gem, Wallet } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { BoomerangVideoBg } from "@/components/BoomerangVideoBg";
 import { telegram } from "@/lib/payments";
@@ -7,7 +7,7 @@ import { telegram } from "@/lib/payments";
 const NAV = [
   { to: "/", label: "Mine", icon: Gem },
   { to: "/studio", label: "NFTs", icon: Disc3 },
-  { to: "/ai", label: "AI", icon: Sparkles },
+  { to: "/ai", label: "AI", icon: AudioLines },
   { to: "/tasks", label: "Tasks", icon: CircleCheckBig },
   { to: "/wallet", label: "Wallet", icon: Wallet },
 ] as const;

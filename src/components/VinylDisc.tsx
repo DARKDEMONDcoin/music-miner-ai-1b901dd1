@@ -1,32 +1,56 @@
 import { useEffect, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
-import { TrackPlayer, type Composition } from "@/lib/synth";
+import { Loader2, Pause, Play } from "lucide-react";
 
 type Props = {
-  track: Composition;
+  /** Direct audio URL of the record. */
+  src: string;
+  /** Cover art printed on the disc label. */
+  cover?: string;
+  title: string;
   tone: string;
   size?: number;
   label?: string;
 };
 
 /** A spinning record with a clean play control. Spins only while playing. */
-export function VinylDisc({ track, tone, size = 132, label }: Props) {
+export function VinylDisc({ src, cover, title, tone, size = 132, label }: Props) {
   const [playing, setPlaying] = useState(false);
-  const player = useRef<TrackPlayer | null>(null);
+  const [loading, setLoading] = useState(false);
+  const audio = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => () => player.current?.stop(), []);
+  useEffect(
+    () => () => {
+      audio.current?.pause();
+      audio.current = null;
+    },
+    [],
+  );
 
-  const toggle = async () => {
+  const toggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (playing) {
-      player.current?.stop();
+      audio.current?.pause();
       setPlaying(false);
       return;
     }
-    player.current ??= new TrackPlayer();
-    setPlaying(true);
+    if (!audio.current) {
+      const el = new Audio(src);
+      el.crossOrigin = "anonymous";
+      el.preload = "none";
+      el.addEventListener("ended", () => setPlaying(false));
+      el.addEventListener("pause", () => setPlaying(false));
+      el.addEventListener("playing", () => {
+        setLoading(false);
+        setPlaying(true);
+      });
+      audio.current = el;
+    }
+    setLoading(true);
     try {
-      await player.current.play(track, () => setPlaying(false));
+      await audio.current.play();
     } catch {
+      setLoading(false);
       setPlaying(false);
     }
   };
@@ -34,7 +58,7 @@ export function VinylDisc({ track, tone, size = 132, label }: Props) {
   return (
     <button
       onClick={toggle}
-      aria-label={playing ? `Pause ${track.title}` : `Play ${track.title}`}
+      aria-label={playing ? `Pause ${title}` : `Play ${title}`}
       className="group relative shrink-0 rounded-full transition-transform duration-200 active:scale-95"
       style={{ width: size, height: size }}
     >
@@ -47,14 +71,25 @@ export function VinylDisc({ track, tone, size = 132, label }: Props) {
         <span className="absolute inset-[18%] rounded-full border border-white/10" />
         <span className="absolute inset-[28%] rounded-full border border-white/10" />
         <span
-          className={`absolute inset-[34%] rounded-full bg-gradient-to-br ${tone} ring-1 ring-white/20`}
-        />
+          className={`absolute inset-[32%] overflow-hidden rounded-full bg-gradient-to-br ${tone} ring-1 ring-white/20`}
+        >
+          {cover ? (
+            <img
+              src={cover}
+              alt=""
+              loading="lazy"
+              className="h-full w-full rounded-full object-cover opacity-90"
+            />
+          ) : null}
+        </span>
         <span className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-background" />
       </span>
 
       <span className="absolute inset-0 flex items-center justify-center">
         <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-lg backdrop-blur transition-transform duration-200 group-hover:scale-105">
-          {playing ? (
+          {loading && !playing ? (
+            <Loader2 size={17} strokeWidth={2.2} className="animate-spin" />
+          ) : playing ? (
             <Pause size={17} strokeWidth={2.2} className="fill-gray-900" />
           ) : (
             <Play size={17} strokeWidth={2.2} className="ml-0.5 fill-gray-900" />

@@ -128,7 +128,7 @@ export type Track = {
   expiresAt: number;
 };
 
-import { NFTS } from "@/lib/nfts";
+import { NFTS, nftById } from "@/lib/nfts";
 import { planById } from "@/lib/plans";
 
 export type GameState = {
@@ -222,7 +222,7 @@ export const REFERRAL_NFT_TARGET = 5;
 /** Owned NFTs, strongest first. */
 export function ownedNfts(s: GameState) {
   return NFTS.filter((n) => (s.nfts ?? []).includes(n.id)).sort(
-    (a, b) => b.multiplier * b.power - a.multiplier * a.power,
+    (a, b) => b.usdtPerDay * 1e6 + b.musicPerDay - (a.usdtPerDay * 1e6 + a.musicPerDay),
   );
 }
 
@@ -231,17 +231,19 @@ export function bestNft(s: GameState) {
   return ownedNfts(s)[0] ?? null;
 }
 
-/** Rig levels coming from owned NFT cards. */
-export function nftPower(s: GameState) {
-  return NFTS.reduce((sum, n) => sum + ((s.nfts ?? []).includes(n.id) ? n.power : 0), 0);
+/** MUSIC per hour produced by the owned record collection. */
+export function nftMusicPerHour(s: GameState) {
+  return ownedNfts(s).reduce((sum, n) => sum + n.musicPerDay, 0) / 24;
 }
 
-/** Combined permanent multiplier from owned NFT cards. */
-export function nftMultiplier(s: GameState) {
-  return NFTS.reduce((m, n) => m * ((s.nfts ?? []).includes(n.id) ? n.multiplier : 1), 1);
+/** Crypto per hour produced by the owned record collection. */
+export function nftCryptoPerHour(s: GameState, id: MinerId) {
+  return (
+    ownedNfts(s).reduce((sum, n) => sum + (id === "gram" ? n.gramPerDay : n.usdtPerDay), 0) / 24
+  );
 }
 
-/** MUSIC per hour granted by each point of hash power. */
+/** MUSIC per hour granted by each upgrade level. */
 export const MUSIC_PER_POWER = 25;
 
 export function baseRatePerHour(s: GameState) {
@@ -249,7 +251,7 @@ export function baseRatePerHour(s: GameState) {
     (sum, i) => sum + instrumentRate(i, s.levels[i.id] ?? 0),
     0,
   );
-  return instruments + rigLevel(s) * MUSIC_PER_POWER;
+  return instruments + rigLevel(s) * MUSIC_PER_POWER + nftMusicPerHour(s);
 }
 
 export function activeTrack(s: GameState): Track | null {
@@ -262,7 +264,7 @@ export function multiplier(s: GameState) {
   const plan = activePlan(s);
   if (plan) m *= plan.multiplier;
   else if (s.premiumUntil > Date.now()) m *= 2;
-  m *= nftMultiplier(s);
+  
   if (s.boosterUntil > Date.now()) m *= 3;
   const t = activeTrack(s);
   if (t) m *= 1 + t.bonusPct / 100;
@@ -363,7 +365,7 @@ export function minerUpgradeCost(m: Miner, level: number) {
 export function rigLevel(s: GameState) {
   const inst = INSTRUMENTS.reduce((sum, i) => sum + (s.levels[i.id] ?? 0), 0);
   const plan = activePlan(s);
-  return inst + (s.bonusLevels ?? 0) + nftPower(s) + (plan?.power ?? 0);
+  return inst + (s.bonusLevels ?? 0) + (plan?.power ?? 0);
 }
 
 export function minerUnlocked(s: GameState, id: MinerId) {
@@ -372,24 +374,28 @@ export function minerUnlocked(s: GameState, id: MinerId) {
   return ownedNfts(s).some((n) => n.unlocks.includes(id));
 }
 
-/** Coins this NFT alone adds per day, for the three studio counters. */
+/** Crypto boost from a subscription / booster, applied on top of NFT output. */
+export function cryptoBoost(s: GameState) {
+  const plan = activePlan(s);
+  const planBoost = plan ? 1 + (plan.multiplier - 1) * 0.25 : 1;
+  return planBoost * (s.boosterUntil > Date.now() ? 1.25 : 1);
+}
+
+/** Coins this NFT alone produces per day, for the three record counters. */
 export function nftDaily(s: GameState, nftId: string) {
-  const has = (s.nfts ?? []).includes(nftId);
-  const base: GameState = has ? s : { ...s, nfts: [...(s.nfts ?? []), nftId] };
-  const without: GameState = { ...s, nfts: (s.nfts ?? []).filter((n) => n !== nftId) };
-  const d = (fn: (x: GameState) => number) => Math.max(0, fn(base) - fn(without)) * 24;
+  const n = nftById(nftId);
+  if (!n) return { music: 0, gram: 0, usdt: 0 };
+  const boost = cryptoBoost(s);
   return {
-    music: d((x) => ratePerHour(x)),
-    gram: d((x) => minerRate(x, MINERS[0]!)),
-    usdt: d((x) => minerRate(x, MINERS[1]!)),
+    music: n.musicPerDay * multiplier(s),
+    gram: n.gramPerDay * boost,
+    usdt: n.usdtPerDay * boost,
   };
 }
 
 export function minerRate(s: GameState, m: Miner) {
-  const level = rigLevel(s);
-  if (level <= 0 || !minerUnlocked(s, m.id)) return 0;
-  const raw = m.baseRate * level;
-  return raw * (isPremium(s) ? 2 : 1) * (s.boosterUntil > Date.now() ? 1.5 : 1);
+  if (!minerUnlocked(s, m.id)) return 0;
+  return nftCryptoPerHour(s, m.id) * cryptoBoost(s);
 }
 
 export function minerPending(s: GameState, m: Miner, now = Date.now()) {

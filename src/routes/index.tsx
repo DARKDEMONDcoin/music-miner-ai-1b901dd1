@@ -141,12 +141,12 @@ function MinePage() {
       {nft ? (
         <section className="liquid-glass animate-fade-up delay-3 rounded-3xl p-4">
           <div className="flex items-center gap-4">
-            <VinylDisc track={nft.track} tone={nft.tone} size={92} />
+            <VinylDisc src={nft.audioUrl} cover={nft.coverUrl} title={nft.name} tone={nft.tone} size={92} />
             <div className="min-w-0 flex-1">
               <p className="text-[10px] uppercase tracking-widest text-foreground/35">Your top NFT</p>
               <p className="mt-1 truncate text-base tracking-tight">{nft.name}</p>
               <p className="text-[11px] text-foreground/45">
-                {nft.artist} · x{nft.multiplier} · +{nft.power} power
+                {nft.artist} · {nft.album} · {nft.rarity}
               </p>
             </div>
           </div>

@@ -62,6 +62,9 @@ function NftsTab() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const owned = state.nfts ?? [];
+  const list = [...NFTS].sort(
+    (a, b) => Number(owned.includes(b.id)) - Number(owned.includes(a.id)),
+  );
 
   const payStars = async (nftId: string, name: string) => {
     setBusy(nftId);
@@ -99,7 +102,7 @@ function NftsTab() {
         Every NFT is a real record. Press play to listen — while you own it, it mines for you 24/7.
       </p>
 
-      {NFTS.map((nft, i) => {
+      {list.map((nft, i) => {
         const has = owned.includes(nft.id);
         const daily = nftDaily(state, nft.id);
         const starsBusy = busy === nft.id;
@@ -112,7 +115,7 @@ function NftsTab() {
             className={`liquid-glass animate-fade-up overflow-hidden rounded-3xl delay-${Math.min(i + 2, 5)}`}
           >
             <div className="flex items-center gap-4 p-4">
-              <VinylDisc track={nft.track} tone={nft.tone} size={104} />
+              <VinylDisc src={nft.audioUrl} cover={nft.coverUrl} title={nft.name} tone={nft.tone} size={104} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="truncate text-base tracking-tight">{nft.name}</p>

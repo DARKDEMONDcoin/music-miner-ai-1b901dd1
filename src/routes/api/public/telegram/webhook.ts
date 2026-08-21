@@ -69,6 +69,92 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
           const chatId = msg?.chat?.id;
           if (!chatId) return Response.json({ ok: true });
 
+          /* ---- Admin task builder: /newtask → name → image → link → reward ---- */
+          if (isAdmin(msg.from?.id)) {
+            const { getDraft, setDraft, clearDraft, saveTask } = await import(
+              "@/lib/task-admin.server"
+            );
+
+            if (text.startsWith("/newtask")) {
+              await setDraft(msg.from.id, { step: "title" });
+              await tg("sendMessage", {
+                chat_id: chatId,
+                text: "New task 1/4\n\nSend the task *name*.",
+                parse_mode: "Markdown",
+              });
+              return Response.json({ ok: true });
+            }
+            if (text.startsWith("/cancel")) {
+              await clearDraft(msg.from.id);
+              await tg("sendMessage", { chat_id: chatId, text: "Cancelled." });
+              return Response.json({ ok: true });
+            }
+
+            const draft = await getDraft(msg.from.id);
+            if (draft?.step) {
+              if (draft.step === "title" && text) {
+                await setDraft(msg.from.id, { ...draft, title: text, step: "image" });
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "2/4 — send the task *image* (photo), or send `skip`.",
+                  parse_mode: "Markdown",
+                });
+                return Response.json({ ok: true });
+              }
+              if (draft.step === "image") {
+                let imageUrl: string | null = null;
+                const photo = msg.photo?.[msg.photo.length - 1];
+                if (photo) {
+                  const f = await tg("getFile", { file_id: photo.file_id });
+                  const path = f.result?.file_path;
+                  const botToken = process.env["MUSIC_TELEGRAM_BOT_TOKEN"];
+                  if (path && botToken) {
+                    imageUrl = `https://api.telegram.org/file/bot${botToken}/${path}`;
+                  }
+                } else if (text && text.startsWith("http")) {
+                  imageUrl = text;
+                }
+                await setDraft(msg.from.id, { ...draft, imageUrl, step: "link" });
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "3/4 — send the task *link*.",
+                  parse_mode: "Markdown",
+                });
+                return Response.json({ ok: true });
+              }
+              if (draft.step === "link" && text) {
+                await setDraft(msg.from.id, { ...draft, linkUrl: text, step: "reward" });
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "4/4 — send the *reward* in MUSIC (a number).",
+                  parse_mode: "Markdown",
+                });
+                return Response.json({ ok: true });
+              }
+              if (draft.step === "reward" && text) {
+                const reward = Number(text.replace(/[^0-9.]/g, ""));
+                if (!Number.isFinite(reward) || reward <= 0) {
+                  await tg("sendMessage", { chat_id: chatId, text: "Send a number, e.g. 2500" });
+                  return Response.json({ ok: true });
+                }
+                const saved = await saveTask({
+                  title: draft.title ?? "Task",
+                  imageUrl: draft.imageUrl ?? null,
+                  linkUrl: draft.linkUrl ?? null,
+                  reward,
+                });
+                await clearDraft(msg.from.id);
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: saved.ok
+                    ? `Task published: ${draft.title} (+${reward} MUSIC)`
+                    : `Failed: ${saved.error}`,
+                });
+                return Response.json({ ok: true });
+              }
+            }
+          }
+
           if (text.startsWith("/101")) {
             if (!isAdmin(msg.from?.id)) {
               await tg("sendMessage", { chat_id: chatId, text: "Admins only." });
