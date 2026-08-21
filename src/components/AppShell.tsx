@@ -56,27 +56,37 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
 
         <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto w-full max-w-md px-4 pb-4">
-          <div className="liquid-glass flex items-center justify-between rounded-3xl p-1.5">
+          <div className="liquid-glass relative flex items-center rounded-[26px] p-1.5">
+            {/* Sliding iOS-style highlight */}
+            <span
+              aria-hidden
+              className="tab-pill pointer-events-none absolute inset-y-1.5 left-1.5 rounded-[20px] bg-white/14 ring-1 ring-white/20"
+              style={{
+                width: `calc((100% - 0.75rem) / ${NAV.length})`,
+                transform: `translateX(calc(${Math.max(
+                  0,
+                  NAV.findIndex((n) => n.to === pathname),
+                )} * 100%))`,
+                opacity: NAV.some((n) => n.to === pathname) ? 1 : 0,
+              }}
+            />
             {NAV.map(({ to, label, icon: Icon }) => {
               const active = pathname === to;
               return (
                 <Link
                   key={to}
                   to={to}
-                  className={`relative flex flex-1 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-[10px] tracking-tight transition-all duration-300 active:scale-95 ${
-                    active ? "text-white" : "text-foreground/55 hover:text-foreground/90"
+                  onClick={() => telegram()?.HapticFeedback?.impactOccurred?.("light")}
+                  className={`relative z-10 flex flex-1 flex-col items-center gap-1 rounded-[20px] px-1 py-2 text-[10px] tracking-tight transition-transform duration-200 active:scale-90 ${
+                    active ? "text-foreground" : "text-foreground/45"
                   }`}
                 >
-                  <span
-                    className={`flex h-9 w-9 items-center justify-center rounded-2xl transition-all duration-300 ${
-                      active
-                        ? "bg-gradient-to-br from-blue-400 to-blue-700 shadow-[0_6px_18px_-6px_rgba(59,130,246,0.9)]"
-                        : "bg-transparent"
-                    }`}
-                  >
-                    <Icon size={19} strokeWidth={active ? 2.2 : 1.8} />
-                  </span>
-                  {label}
+                  <Icon
+                    size={20}
+                    strokeWidth={active ? 2.3 : 1.7}
+                    className={`transition-transform duration-300 ${active ? "-translate-y-px scale-110" : ""}`}
+                  />
+                  <span className={active ? "opacity-100" : "opacity-80"}>{label}</span>
                 </Link>
               );
             })}
