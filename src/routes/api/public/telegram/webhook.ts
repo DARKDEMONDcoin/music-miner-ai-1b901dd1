@@ -109,7 +109,23 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             }
 
             const draft = await getDraft(msg.from.id);
+            if (draft?.step === "deepai" && text) {
+              const { addKey, listKeys } = await import("@/lib/deepai.server");
+              try {
+                await addKey(text.trim());
+                await clearDraft(msg.from.id);
+                const keys = await listKeys();
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: `Key added. Active keys: ${keys.filter((k) => k.active).length}/${keys.length}`,
+                });
+              } catch (err) {
+                await tg("sendMessage", { chat_id: chatId, text: `Failed: ${String(err)}` });
+              }
+              return Response.json({ ok: true });
+            }
             if (draft?.step) {
+
               if (draft.step === "title" && text) {
                 await setDraft(msg.from.id, { ...draft, title: text, step: "image" });
                 await tg("sendMessage", {
