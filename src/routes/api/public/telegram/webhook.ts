@@ -194,7 +194,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               await tg("sendMessage", { chat_id: chatId, text: "Admins only." });
               return Response.json({ ok: true });
             }
-            const panel = adminPanel(await getState());
+            const panel = adminPanel(await getState(), await getStats());
             await tg("sendMessage", {
               chat_id: chatId,
               text: panel.text,
@@ -211,10 +211,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               caption: "*Music AI*\n\nMine MUSIC, GRAM and USDT from your own AI studio.",
               parse_mode: "Markdown",
               reply_markup: {
-                inline_keyboard: [
-                  [{ text: "Open Music AI", web_app: { url: APP_URL } }],
-                ],
+                inline_keyboard: [[{ text: "Open Music AI", url: MINI_APP_LINK }]],
               },
+
             });
           }
         } catch (e) {
