@@ -49,7 +49,7 @@ export const Route = createFileRoute("/api/telegram/invoice")({
           if (nft) {
             item = {
               title: nft.name,
-              desc: `Music NFT — x${nft.multiplier} mining and +${nft.power} power forever`,
+              desc: `Music NFT — mines ${nft.gramPerDay} GRAM and ${nft.usdtPerDay} USDT a day, forever`,
               stars: nft.stars,
             };
           }

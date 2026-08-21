@@ -112,7 +112,7 @@ function NftsTab() {
             className={`liquid-glass animate-fade-up overflow-hidden rounded-3xl delay-${Math.min(i + 2, 5)}`}
           >
             <div className="flex items-center gap-4 p-4">
-              <VinylDisc track={nft.track} tone={nft.tone} size={104} />
+              <VinylDisc src={nft.audioUrl} cover={nft.coverUrl} title={nft.name} tone={nft.tone} size={104} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="truncate text-base tracking-tight">{nft.name}</p>
