@@ -194,8 +194,7 @@ export function initialState(): GameState {
     minersUnlocked: { gram: false, usdt: false },
     adsWatched: 0,
     adRewardsClaimed: [],
-    servers: {},
-    nfts: [],
+    nfts: [WELCOME_NFT_ID],
     planId: null,
     planUntil: 0,
   };
