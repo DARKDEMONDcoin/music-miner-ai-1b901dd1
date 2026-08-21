@@ -262,3 +262,24 @@
     animation: none;
   }
 }
+
+/* Subtle motion without a media player, safe inside Telegram's Android webview. */
+@keyframes background-breathe {
+  from {
+    transform: scale(1.02);
+  }
+  to {
+    transform: scale(1.08);
+  }
+}
+
+.background-still {
+  animation: background-breathe 18s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .background-still {
+    animation: none;
+  }
+}
