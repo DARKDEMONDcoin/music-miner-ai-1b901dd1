@@ -6,6 +6,10 @@ export const APP_URL =
   process.env["MUSIC_APP_URL"] ??
   "https://project--cabbd000-2e02-47bd-9490-cb3561f12ac2-dev.lovable.app";
 
+/** The link used by every "open the app" button (channel posts + bot). */
+export const MINI_APP_LINK = "https://t.me/Mosuclbot/App";
+
+
 function token() {
   const t = process.env["MUSIC_TELEGRAM_BOT_TOKEN"];
   if (!t) throw new Error("MUSIC_TELEGRAM_BOT_TOKEN is not configured");
