@@ -356,12 +356,26 @@ export function minerUpgradeCost(m: Miner, level: number) {
 export function rigLevel(s: GameState) {
   const inst = INSTRUMENTS.reduce((sum, i) => sum + (s.levels[i.id] ?? 0), 0);
   const plan = activePlan(s);
-  return inst + (s.bonusLevels ?? 0) + serverPower(s) + nftPower(s) + (plan?.power ?? 0);
+  return inst + (s.bonusLevels ?? 0) + nftPower(s) + (plan?.power ?? 0);
 }
 
 export function minerUnlocked(s: GameState, id: MinerId) {
   if (s.minersUnlocked?.[id]) return true;
-  return Boolean(activePlan(s)?.unlocks.includes(id));
+  if (activePlan(s)?.unlocks.includes(id)) return true;
+  return ownedNfts(s).some((n) => n.unlocks.includes(id));
+}
+
+/** Coins this NFT alone adds per day, for the three studio counters. */
+export function nftDaily(s: GameState, nftId: string) {
+  const has = (s.nfts ?? []).includes(nftId);
+  const base: GameState = has ? s : { ...s, nfts: [...(s.nfts ?? []), nftId] };
+  const without: GameState = { ...s, nfts: (s.nfts ?? []).filter((n) => n !== nftId) };
+  const d = (fn: (x: GameState) => number) => Math.max(0, fn(base) - fn(without)) * 24;
+  return {
+    music: d((x) => ratePerHour(x)),
+    gram: d((x) => minerRate(x, MINERS[0]!)),
+    usdt: d((x) => minerRate(x, MINERS[1]!)),
+  };
 }
 
 export function minerRate(s: GameState, m: Miner) {
